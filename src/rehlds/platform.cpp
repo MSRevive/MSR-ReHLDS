@@ -1,5 +1,11 @@
 #include "precompiled.h"
 
+// Ensure Steam API headers are included
+#ifndef STEAM_API_H
+#include "steam/steam_api.h"
+#include "steam/steam_gameserver.h"
+#endif
+
 IReHLDSPlatform* CRehldsPlatformHolder::m_Platform;
 
 IReHLDSPlatform* CRehldsPlatformHolder::get() {
@@ -150,11 +156,19 @@ int CSimplePlatform::WSAGetLastError() {
 
 #endif //WIN32
 void CSimplePlatform::SteamAPI_SetBreakpadAppID(uint32 unAppID) {
-	return SteamAPI_SetBreakpadAppID(unAppID);
+#if defined(USE_BREAKPAD_HANDLER) || defined(STEAM_API_EXPORTS)
+	return ::SteamAPI_SetBreakpadAppID(unAppID);
+#else
+	// Breakpad functions not available in this Steam API build
+#endif
 }
 
 void CSimplePlatform::SteamAPI_UseBreakpadCrashHandler(char const *pchVersion, char const *pchDate, char const *pchTime, bool bFullMemoryDumps, void *pvContext, PFNPreMinidumpCallback m_pfnPreMinidumpCallback) {
-	SteamAPI_UseBreakpadCrashHandler(pchVersion, pchDate, pchTime, bFullMemoryDumps, pvContext, m_pfnPreMinidumpCallback);
+#if defined(USE_BREAKPAD_HANDLER) || defined(STEAM_API_EXPORTS)
+	::SteamAPI_UseBreakpadCrashHandler(pchVersion, pchDate, pchTime, bFullMemoryDumps, pvContext, m_pfnPreMinidumpCallback);
+#else
+	// Breakpad functions not available in this Steam API build
+#endif
 }
 
 void CSimplePlatform::SteamAPI_RegisterCallback(CCallbackBase *pCallback, int iCallback) {
@@ -162,7 +176,7 @@ void CSimplePlatform::SteamAPI_RegisterCallback(CCallbackBase *pCallback, int iC
 }
 
 bool CSimplePlatform::SteamAPI_Init() {
-	return StartupSteamClient();
+	return ::SteamAPI_Init();
 }
 
 void CSimplePlatform::SteamAPI_UnregisterCallResult(class CCallbackBase *pCallback, SteamAPICall_t hAPICall) {
@@ -170,15 +184,15 @@ void CSimplePlatform::SteamAPI_UnregisterCallResult(class CCallbackBase *pCallba
 }
 
 ISteamApps* CSimplePlatform::SteamApps() {
-	return steamapicontext->SteamApps();
+	return ::SteamApps();
 }
 
 bool CSimplePlatform::SteamGameServer_Init(uint32 unIP, uint16 usSteamPort, uint16 usGamePort, uint16 usQueryPort, EServerMode eServerMode, const char *pchVersionString) {
-	return StartupSteamServer(unIP, usSteamPort, usGamePort, usQueryPort, eServerMode, pchVersionString);
+	return ::SteamGameServer_Init(unIP, usSteamPort, usGamePort, usQueryPort, eServerMode, pchVersionString);
 }
 
 ISteamGameServer* CSimplePlatform::SteamGameServer() {
-	return steamgameserverapicontext->SteamGameServer();
+	return ::SteamGameServer();
 }
 
 void CSimplePlatform::SteamGameServer_RunCallbacks() {
@@ -190,7 +204,7 @@ void CSimplePlatform::SteamAPI_RunCallbacks() {
 }
 
 void CSimplePlatform::SteamGameServer_Shutdown() {
-	ShutdownSteamServer();
+	::SteamGameServer_Shutdown();
 }
 
 void CSimplePlatform::SteamAPI_UnregisterCallback(CCallbackBase *pCallback)

@@ -28,6 +28,12 @@
 
 #include "precompiled.h"
 
+// Ensure Steam API headers are included
+#ifndef STEAM_API_H
+#include "steam/steam_api.h"
+#include "steam/steam_gameserver.h"
+#endif
+
 CGameClient** g_GameClients;
 
 CGameClient::CGameClient(int id, client_t* cl)
@@ -530,6 +536,15 @@ netchan_t* EXT_FUNC CNetChan::GetChan()
 	return m_pNetChan;
 }
 
+void CNetChan::Clear()
+{
+	for (int i = 0; i < MAX_STREAMS; i++)
+	{
+		for (int j = 0; j < NET_DECOMPRESS_MAX_TIMES; j++)
+			m_FragStats[i].decompress_failure_times[j] = 0;
+		m_FragStats[i].num_decompress_failures = 0;
+	}
+}
 
 
 int EXT_FUNC CRehldsServerStatic::GetMaxClients()
@@ -896,7 +911,7 @@ IGameClient* GetRehldsApiClient(client_t* cl)
 }
 
 ISteamGameServer* EXT_FUNC CRehldsServerData::GetSteamGameServer() {
-	return steamgameserverapicontext->SteamGameServer();
+	return ::SteamGameServer();
 }
 
 netadr_t* EXT_FUNC CRehldsServerData::GetNetFrom() {

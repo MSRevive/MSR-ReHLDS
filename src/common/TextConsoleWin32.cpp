@@ -30,6 +30,9 @@
 
 #if defined(_WIN32)
 
+// textconsole.h includes TextConsoleWin32.h at the end for the platform
+#include "textconsole.h"
+
 CTextConsoleWin32 console;
 #pragma comment(lib, "user32.lib")
 

@@ -53,6 +53,7 @@ const int MAX_NAME   = 32;
 #include "pm_defs.h"
 #include "inst_baseline.h"
 #include "net_ws.h"
+#include "pm_shared/pm_movevars.h"
 
 const int DEFAULT_SOUND_PACKET_VOLUME			= 255;
 const float DEFAULT_SOUND_PACKET_ATTENUATION	= 1.0f;
@@ -94,13 +95,6 @@ typedef enum redirect_e
 	RD_CLIENT = 1,
 	RD_PACKET = 2,
 } redirect_t;
-
-typedef enum server_state_e
-{
-	ss_dead = 0,
-	ss_loading = 1,
-	ss_active = 2,
-} server_state_t;
 
 typedef struct server_s
 {
@@ -242,6 +236,7 @@ typedef struct client_s
 	double m_lastvoicetime;
 	int m_sendrescount;
 	qboolean m_bSentNewResponse;
+	movevars_t movevars;
 } client_t;
 
 enum
@@ -283,6 +278,7 @@ extern rehlds_server_t g_rehlds_sv;
 extern cvar_t sv_lan;
 extern cvar_t sv_lan_rate;
 extern cvar_t sv_aim;
+extern cvar_t sv_allow_autoaim;
 
 extern cvar_t sv_skycolor_r;
 extern cvar_t sv_skycolor_g;
@@ -366,6 +362,7 @@ extern cvar_t sv_visiblemaxplayers;
 extern cvar_t sv_downloadurl;
 extern cvar_t sv_allow_dlfile;
 extern cvar_t sv_version;
+extern cvar_t sv_tags;
 #ifdef REHLDS_FIXES
 extern cvar_t sv_echo_unknown_cmd;
 extern cvar_t sv_auto_precache_sounds_in_models;
@@ -378,6 +375,7 @@ extern cvar_t sv_rehlds_attachedentities_playeranimationspeed_fix;
 extern cvar_t sv_rehlds_local_gametime;
 extern cvar_t sv_rehlds_send_mapcycle;
 extern cvar_t sv_usercmd_custom_random_seed;
+extern cvar_t sv_rehlds_allow_large_sprays;
 #endif
 extern int sv_playermodel;
 
@@ -460,13 +458,13 @@ void SV_BuildHashedSoundLookupTable(void);
 void SV_AddSampleToHashedLookupTable(const char *pszSample, int iSampleIndex);
 qboolean SV_ValidClientMulticast(client_t *client, int soundLeaf, int to);
 void SV_Multicast(edict_t *ent, vec_t *origin, int to, qboolean reliable);
-void SV_WriteMovevarsToClient(sizebuf_t *message);
+void SV_WriteMovevarsToClient(sizebuf_t *message, struct movevars_s *movevars);
 void SV_WriteDeltaDescriptionsToClient(sizebuf_t *msg);
-void SV_SetMoveVars(void);
-void SV_QueryMovevarsChanged(void);
+void SV_SetMoveVars(struct movevars_s *movevars);
 void SV_SendServerinfo(sizebuf_t *msg, client_t *client);
 void SV_SendServerinfo_internal(sizebuf_t *msg, client_t *client);
 void SV_SendResources(sizebuf_t *msg);
+void SV_SendResources_internal(sizebuf_t *msg);
 void SV_WriteClientdataToMessage(client_t *client, sizebuf_t *msg);
 void SV_WriteSpawn(sizebuf_t *msg);
 void SV_SendUserReg(sizebuf_t *msg);
@@ -493,6 +491,7 @@ int SV_CheckKeyInfo_internal(netadr_t *adr, char *protinfo, unsigned short *port
 int SV_CheckForDuplicateSteamID(client_t *client);
 qboolean SV_CheckForDuplicateNames(char *userinfo, qboolean bIsReconnecting, int nExcludeSlot);
 int SV_CheckUserInfo(netadr_t *adr, char *userinfo, qboolean bIsReconnecting, int nReconnectSlot, char *name);
+int SV_CheckUserInfo_internal(netadr_t *adr, char *userinfo, qboolean bIsReconnecting, int nReconnectSlot, char *name);
 int SV_FindEmptySlot(netadr_t *adr, int *pslot, client_t ** ppClient);
 void SV_ConnectClient(void);
 void SV_ConnectClient_internal(void);
@@ -564,6 +563,7 @@ void SV_SendClientMessages(void);
 void SV_ExtractFromUserinfo(client_t *cl);
 int SV_ModelIndex(const char *name);
 void SV_AddResource(resourcetype_t type, const char *name, int size, unsigned char flags, int index);
+void SV_AddResource_internal(resourcetype_t type, const char *name, int size, unsigned char flags, int index);
 size_t SV_CountResourceByType(resourcetype_t type, resource_t **pResourceList = nullptr, size_t nListMax = 0, size_t *nWidthFileNameMax = nullptr);
 void SV_CreateGenericResources(void);
 void SV_CreateResourceList(void);

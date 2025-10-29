@@ -175,6 +175,15 @@ NOXREF const char *Cvar_CompleteVariable(const char *search, int forward)
 	return NULL;
 }
 
+void Cvar_FireListeners(const char *var_name, const char *value)
+{
+	for (auto var : g_CvarsListeners) {
+		if (Q_strcmp(var->name, var_name) == 0) {
+			var->func(value);
+		}
+	}
+}
+
 void EXT_FUNC Cvar_DirectSet_internal(struct cvar_s *var, const char *value)
 {
 	if (!var || !value)
@@ -296,11 +305,17 @@ void EXT_FUNC Cvar_DirectSet_internal(struct cvar_s *var, const char *value)
 	var->string = (char *)Z_Malloc(Q_strlen(pszValue) + 1);
 	Q_strcpy(var->string, pszValue);
 	var->value = (float)Q_atof(var->string);
+
+#ifdef REHLDS_API
+	if (changed) {
+		Cvar_FireListeners(var->name, pszValue);
+	}
+#endif
 }
 
 void Cvar_DirectSet(struct cvar_s *var, const char *value)
 {
-	Cvar_DirectSet_internal(var, value);
+	g_RehldsHookchains.m_Cvar_DirectSet.callChain(Cvar_DirectSet_internal, var, value);
 }
 
 void Cvar_Set(const char *var_name, const char *value)

@@ -30,9 +30,7 @@ misrepresented as being the original software.
 */
 #pragma once
 
-#if defined(__i386__) || defined(_M_IX86)
-#include <xmmintrin.h> // For MMX intrinsics
-#endif
+#include <xmmintrin.h>
 
 /* yes I know, the top of this file is quite ugly */
 
@@ -49,6 +47,7 @@ typedef __m128 v4sf;  // vector of 4 float (sse1)
 
 #include <emmintrin.h>
 typedef __m128i v4si; // vector of 4 int (sse2)
+
 
 /* declare some SSE constants -- why can't I figure a better way to do that? */
 #define _PS_CONST(Name, Val)                                            \

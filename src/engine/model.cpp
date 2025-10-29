@@ -288,7 +288,8 @@ model_t *Mod_LoadModel(model_t *mod, qboolean crash, qboolean trackCRC)
 	buf = COM_LoadFileForMe(mod->name, &length);
 	if (!buf)
 	{
-		Con_Printf("%s: %s not found\n", __func__, mod->name);
+		if (crash)
+			Sys_Error("%s: %s not found", __func__, mod->name);
 		return 0;
 	}
 
@@ -313,14 +314,14 @@ model_t *Mod_LoadModel(model_t *mod, qboolean crash, qboolean trackCRC)
 				p->firstCRCDone = 1;
 				p->initialCRC = currentCRC;
 #ifndef REHLDS_FIXES
-				//SetCStrikeFlags();
+				SetCStrikeFlags();
 #endif
-				// if (!IsGameSubscribed("czero") && g_eGameType == GT_CStrike && IsCZPlayerModel(currentCRC, mod->name) && g_pcls.state)
-				// {
-				// 	COM_ExplainDisconnection(TRUE, "Cannot continue with altered model %s, disconnecting.", mod->name);
-				// 	CL_Disconnect();
-				// 	return 0;
-				// }
+				if (!IsGameSubscribed("czero") && g_eGameType == GT_CStrike && IsCZPlayerModel(currentCRC, mod->name) && g_pcls.state)
+				{
+					COM_ExplainDisconnection(TRUE, "Cannot continue with altered model %s, disconnecting.", mod->name);
+					CL_Disconnect();
+					return 0;
+				}
 			}
 		}
 	}
@@ -853,6 +854,7 @@ void CalcSurfaceExtents(msurface_t *s)
 	int		i, j, e;
 	mvertex_t	*v;
 	mtexinfo_t	*tex;
+	vec3_t		middle{};
 	int		bmins[2], bmaxs[2];
 
 	mins[0] = mins[1] = 999999;
@@ -867,6 +869,8 @@ void CalcSurfaceExtents(msurface_t *s)
 			v = &loadmodel->vertexes[loadmodel->edges[e].v[0]];
 		else
 			v = &loadmodel->vertexes[loadmodel->edges[-e].v[1]];
+
+		VectorAdd(middle, v->position, middle);
 
 		for (j = 0; j < 2; j++)
 		{
@@ -883,6 +887,8 @@ void CalcSurfaceExtents(msurface_t *s)
 		}
 	}
 
+	VectorScale(middle, 1.0f / s->numedges, middle);
+
 	for (i = 0; i < 2; i++)
 	{
 		bmins[i] = (int) floor(mins[i] / 16);
@@ -890,8 +896,16 @@ void CalcSurfaceExtents(msurface_t *s)
 
 		s->texturemins[i] = bmins[i] * 16;
 		s->extents[i] = (bmaxs[i] - bmins[i]) * 16;
-		if (!(tex->flags & TEX_SPECIAL) && s->extents[i] > 256)
-			Sys_Error("%s: Bad surface extents", __func__);
+
+		if (!(tex->flags & TEX_SPECIAL) && s->extents[i] > MAX_SURFACE_TEXTURE_SIZE)
+		{
+			int surfID = s - loadmodel->surfaces;
+			Sys_Error("%s: Bad #%d surface extents %d/%d on %s at position (%d,%d,%d)",
+				__func__, surfID, s->extents[0], s->extents[1],
+				tex->texture->name,
+				(int)middle[0], (int)middle[1], (int)middle[2]
+			);
+		}
 	}
 }
 
@@ -1251,7 +1265,7 @@ float RadiusFromBounds(vec_t *mins, vec_t *maxs)
 
 void Mod_LoadBrushModel(model_t *mod, void *buffer)
 {
-	Mod_LoadBrushModel_internal(mod, buffer);
+	g_RehldsHookchains.m_Mod_LoadBrushModel.callChain(&Mod_LoadBrushModel_internal, mod, buffer);
 }
 
 void EXT_FUNC Mod_LoadBrushModel_internal(model_t *mod, void *buffer)

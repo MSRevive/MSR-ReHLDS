@@ -1,4 +1,4 @@
-	#pragma once
+#pragma once
 
 #include "osconfig.h"
 #include "steam/steam_api.h"

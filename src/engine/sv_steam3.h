@@ -31,9 +31,9 @@
 #include "maintypes.h"
 #include "common.h"
 #include "common/SteamCommon.h"
-#include "steam/steam_api.h"
-#include "steam/steam_gameserver.h"
-#include "steam/steamclientpublic.h"
+#include "public/steam/steam_api.h"
+#include "public/steam/steam_gameserver.h"
+#include "public/steam/steamclientpublic.h"
 #include "server.h"
 
 class CSteamID;
@@ -54,6 +54,8 @@ protected:
 	bool InitModule();
 };
 
+#define MAX_STEAM_TAGS_LENGTH 128 // Steam doesn't send tags string more than 128 bytes
+
 class CSteam3Server: public CSteam3
 {
 public:
@@ -70,6 +72,10 @@ protected:
 	bool m_bWantToBeSecure;
 	bool m_bLanOnly;
 	CSteamID m_SteamIDGS;
+
+#ifdef REHLDS_FIXES
+	char m_GameTagsData[MAX_STEAM_TAGS_LENGTH];
+#endif
 
 public:
 
@@ -96,6 +102,7 @@ public:
 	void NotifyOfLevelChange(bool bForce);
 	void RunFrame();
 	void SendUpdatedServerDetails();
+	void UpdateGameTags();
 };
 
 class CSteam3Client: public CSteam3
@@ -156,15 +163,3 @@ CSteam3Server *Steam3Server();
 CSteam3Client *Steam3Client();
 void Master_SetMaster_f();
 void Steam_HandleIncomingPacket(byte *data, int len, int fromip, uint16 port);
-
-class CSteamAPIContext;
-class CSteamGameServerAPIContext;
-
-extern CSteamAPIContext* steamapicontext;
-extern CSteamGameServerAPIContext* steamgameserverapicontext;
-
-extern bool StartupSteamClient(void);
-extern bool StartupSteamServer(uint32 unIP, uint16 usSteamPort, uint16 usGamePort, uint16 usQueryPort, EServerMode eServerMode, const char* pchVersionString);
-
-extern void ShutdownSteamClient(void);
-extern void ShutdownSteamServer(void);

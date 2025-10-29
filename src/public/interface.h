@@ -27,6 +27,11 @@
 
 #endif // _WIN32
 
+// Define EXT_FUNC if not already defined
+#ifndef EXT_FUNC
+	#define EXT_FUNC
+#endif
+
 void *Sys_GetProcAddress(const char *pModuleName, const char *pName);
 void *Sys_GetProcAddress(void *pModuleHandle, const char *pName);
 

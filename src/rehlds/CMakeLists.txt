@@ -36,16 +36,16 @@ target_include_directories(rehlds PRIVATE
 	${BASEDIR}/src
 	${BASEDIR}/src/common
 	${BASEDIR}/src/engine
-	${BASEDIR}/src/movement
 	${BASEDIR}/src/public
 	${BASEDIR}/src/public/rehlds
+	${BASEDIR}/src/pm_shared
+	${BASEDIR}/src/game_shared
 	${BASEDIR}/utils
-	bzip2
+	${BASEDIR}/utils/bzip2
 )
 
 target_compile_definitions(rehlds PRIVATE
 	REHLDS_FIXES
-	VERSION_SAFE_STEAM_API_INTERFACES
 	REHLDS_SSE
 	REHLDS_OPT_PEDANTIC
 	REHLDS_SELF
@@ -64,28 +64,42 @@ endif(UNIX)
 ################################################################################
 # Source groups
 ################################################################################
-set(Misc
-	"../public/tier0/pointeroverride.asm"
-)
-source_group("Misc" FILES ${Misc})
-
 set(Source_Files
 	"engine.h"
+	"flight_recorder.cpp"
+	"flight_recorder.h"
+	"FlightRecorderImpl.cpp"
+	"FlightRecorderImpl.h"
+	"hookchains_impl.cpp"
+	"hookchains_impl.h"
+	"jitasm.h"
 	"main.cpp"
 	"platform.cpp"
 	"platform.h"
+	"precompiled.cpp"
+	"precompiled.h"
+	"public_amalgamation.cpp"
+	"rehlds_api_impl.cpp"
+	"rehlds_api_impl.h"
 	"rehlds_interfaces_impl.cpp"
 	"rehlds_interfaces_impl.h"
+	"rehlds_messagemngr_impl.cpp"
+	"rehlds_messagemngr_impl.h"
 	"rehlds_security.cpp"
 	"rehlds_security.h"
+	"RehldsRuntimeConfig.cpp"
+	"RehldsRuntimeConfig.h"
+	"structSizeCheck.cpp"
 )
 source_group("Source Files" FILES ${Source_Files})
 
 set(Common
 	"../common/BaseSystemModule.cpp"
+	"../common/BaseSystemModule.h"
 	"../common/beamdef.h"
 	"../common/cl_entity.h"
 	"../common/com_model.h"
+	"../common/commandline.cpp"
 	"../common/con_nprint.h"
 	"../common/const.h"
 	"../common/crc.h"
@@ -101,16 +115,31 @@ set(Common
 	"../common/event_args.h"
 	"../common/event_flags.h"
 	"../common/hltv.h"
+	"../common/IAdminServer.h"
+	"../common/IBaseSystem.h"
+	"../common/IDemoPlayer.h"
+	"../common/IEngineWrapper.h"
 	"../common/IGameServerData.h"
 	"../common/in_buttons.h"
+	"../common/IObjectContainer.h"
+	"../common/ISystemModule.h"
+	"../common/IVGuiModule.h"
 	"../common/ivoicetweak.h"
 	"../common/kbutton.h"
 	"../common/mathlib.h"
 	"../common/md5.h"
+	"../common/minidump.cpp"
+	"../common/minidump.h"
 	"../common/net_api.h"
 	"../common/netadr.h"
+	"../common/netapi.cpp"
+	"../common/netapi.h"
 	"../common/nowin.h"
+	"../common/ObjectDictionary.cpp"
+	"../common/ObjectDictionary.h"
 	"../common/ObjectList.cpp"
+	"../common/ObjectList.h"
+	"../common/parsemsg.cpp"
 	"../common/parsemsg.h"
 	"../common/particledef.h"
 	"../common/pmtrace.h"
@@ -123,9 +152,15 @@ set(Common
 	"../common/ref_params.h"
 	"../common/screenfade.h"
 	"../common/Sequence.h"
+	"../common/stdc++compat.cpp"
+	"../common/SteamAppStartUp.cpp"
+	"../common/SteamAppStartUp.h"
 	"../common/SteamCommon.h"
 	"../common/studio_event.h"
+	"../common/textconsole.cpp"
+	"../common/textconsole.h"
 	"../common/TokenLine.cpp"
+	"../common/TokenLine.h"
 	"../common/triangleapi.h"
 	"../common/usercmd.h"
 	"../common/vmodes.h"
@@ -319,14 +354,18 @@ set(Engine_Server
 source_group("Engine\\Server" FILES ${Engine_Server})
 
 set(Public
+	"../public/asmlib.h"
 	"../public/basetypes.h"
 	"../public/commonmacros.h"
 	"../public/engine_hlds_api.h"
 	"../public/engine_launcher_api.h"
 	"../public/FileSystem.h"
+	"../public/icommandline.h"
 	"../public/idedicatedexports.h"
+	# interface.cpp is included in public_amalgamation.cpp
 	"../public/interface.h"
 	"../public/iregistry.h"
+	"../public/keydefs.h"
 	"../public/registry.cpp"
 	"../public/savegame_version.h"
 	"../public/steamid.cpp"
@@ -334,8 +373,11 @@ set(Public
 	"../public/utlbuffer.cpp"
 	"../public/utlbuffer.h"
 	"../public/utllinkedlist.h"
+	"../public/utlmap.h"
 	"../public/utlmemory.h"
 	"../public/utlrbtree.h"
+	"../public/utlsymbol.cpp"
+	"../public/utlsymbol.h"
 	"../public/utlvector.h"
 )
 source_group("Public" FILES ${Public})
@@ -404,7 +446,6 @@ set(Public_tier0
 source_group("Public\\tier0" FILES ${Public_tier0})
 
 set(ALL_FILES
-	${Misc}
 	${Source_Files}
 	${Common}
 	${Dlls}
@@ -421,3 +462,12 @@ set(ALL_FILES
 target_precompile_headers(rehlds PRIVATE 
 	"./precompiled.h")
 target_sources(rehlds PRIVATE ${ALL_FILES})
+
+# Exclude textconsole files from using precompiled headers due to platform-specific conflicts
+set_source_files_properties(
+	"../common/textconsole.cpp"
+	"../common/TextConsoleWin32.cpp"
+	"../common/TextConsoleUnix.cpp"
+	PROPERTIES
+	SKIP_PRECOMPILE_HEADERS ON
+)
