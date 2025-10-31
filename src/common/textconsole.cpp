@@ -26,7 +26,12 @@
 *
 */
 
-#include "precompiled.h"
+#include "osconfig.h"
+#include "textconsole.h"
+#include "IBaseSystem.h"
+#include "strtools.h"
+#include "ObjectList.h"
+#include <stdio.h>
 
 bool CTextConsole::Init(IBaseSystem *system)
 {

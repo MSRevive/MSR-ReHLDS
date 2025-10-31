@@ -461,7 +461,7 @@ static uchar16 *StripWhitespaceWorker(uchar16 *pwch, int cchLength, bool *pbStri
 	// walk backwards from the end of the string, killing any whitespace
 	*pbStrippedWhitespace = false;
 
-	uchar16* pwchEnd = pwch + cchLength - 1;
+	uchar16 *pwchEnd = pwch + cchLength - 1;
 	while (--pwchEnd >= pwch)
 	{
 		if (!iswspace(*pwchEnd) && !Q_IsMeanSpaceW(*pwchEnd))

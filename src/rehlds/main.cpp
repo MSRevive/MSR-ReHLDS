@@ -35,10 +35,17 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
 	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
+		g_RehldsRuntimeConfig.parseFromCommandLine(GetCommandLineA());
+
+		// Test suite is not included in this build
+		// If you need test suite support, implement the test framework
+
 	}
 	else if (fdwReason == DLL_PROCESS_DETACH)
 	{
+
 	}
+
 	return TRUE;
 }
 

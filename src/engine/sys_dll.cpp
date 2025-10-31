@@ -27,10 +27,6 @@
 */
 
 #include "precompiled.h"
-#ifdef _WIN32
-#include <tchar.h>
-#include <wchar.h>
-#endif
 
 void(*Launcher_ConsolePrintf)(char *, ...);
 char *(*Launcher_GetLocalizedString)(unsigned int);
@@ -438,20 +434,7 @@ void NORETURN Sys_Error(const char *error, ...)
 	va_end(argptr);
 
 #ifdef _WIN32
-	typedef int(__stdcall *MSGBOXWAPI)(IN HWND hWnd, IN LPCWSTR lpText, IN LPCWSTR lpCaption, IN UINT uType, IN WORD wLanguageId, IN DWORD dwMilliseconds);
-
-	HMODULE hUser32 = LoadLibraryA("user32.dll");
-	if (hUser32)
-	{
-		auto MessageBoxTimeout = (MSGBOXWAPI)GetProcAddress(hUser32, "MessageBoxTimeoutW");
-		wchar_t* bodyBuf = new wchar_t[1024];
-		mbstowcs(bodyBuf, text, 1025);
-		MessageBoxTimeout(GetForegroundWindow(), bodyBuf, L"Fatal error - Dedicated server", MB_ICONERROR | MB_OK, 0, 1500);
-		delete[] bodyBuf;
-		FreeLibrary(hUser32);
-	}
-	else
-		MessageBox(GetForegroundWindow(), text, "Fatal error - Dedicated server", MB_ICONERROR | MB_OK);
+	MessageBox(GetForegroundWindow(), text, "Fatal error - Dedicated server", MB_ICONERROR | MB_OK);
 #endif // _WIN32
 
 	if (bReentry)
@@ -792,9 +775,9 @@ ENTITYINIT GetEntityInit_internal(char *pClassName)
 	return (ENTITYINIT)GetDispatch(pClassName);
 }
 
-ENTITYINIT EXT_FUNC GetEntityInit_api(char* pClassName)
+ENTITYINIT EXT_FUNC GetEntityInit_api(char *pClassName)
 {
-	return GetEntityInit_internal(pClassName);
+	return g_RehldsHookchains.m_GetEntityInit.callChain(GetEntityInit_internal, pClassName);
 }
 
 ENTITYINIT GetEntityInit(char *pClassName)
@@ -1100,6 +1083,10 @@ void LoadThisDll(const char *szDllFilename)
 		goto IgnoreThisDLL;
 	}
 
+#ifdef REHLDS_API
+	MessageManager().Init();
+#endif
+
 	pfnGiveFnptrsToDll(&g_engfuncsExportedToDlls, &gGlobalVariables);
 	if (g_iextdllMac == MAX_EXTENSION_DLL)
 	{
@@ -1344,12 +1331,16 @@ void Con_Printf(const char *fmt, ...)
 	va_start(va, fmt);
 	Q_vsnprintf(Dest, sizeof(Dest), fmt, va);
 	va_end(va);
-	
-	Con_Printf_internal(Dest);
+
+	g_RehldsHookchains.m_Con_Printf.callChain(Con_Printf_internal, Dest);
 }
 
 void EXT_FUNC Con_Printf_internal(const char *Dest)
 {
+#ifdef REHLDS_FLIGHT_REC
+	FR_Log("REHLDS_CON", Dest);
+#endif
+
 #ifdef REHLDS_FIXES
 	if (sv_redirected == RD_NONE || sv_rcon_condebug.value > 0.0f)
 #endif
@@ -1399,7 +1390,34 @@ void Con_SafePrintf(const char *fmt, ...)
 #endif // _WIN32
 }
 
-void EXT_FUNC Con_DPrintf(const char* fmt, ...)
+#if defined(REHLDS_FIXES) && defined(REHLDS_FLIGHT_REC)
+// Always print debug logs to the flight recorder
+void EXT_FUNC Con_DPrintf(const char *fmt, ...)
+{
+	char Dest[4096];
+	va_list argptr;
+	va_start(argptr, fmt);
+	Q_vsnprintf(Dest, sizeof(Dest), fmt, argptr);
+	va_end(argptr);
+
+	FR_Log("REHLDS_CONDBG", Dest);
+
+	if (developer.value != 0.0f)
+	{
+#ifdef _WIN32
+		OutputDebugStringA(Dest);
+		if (con_debuglog)
+			Con_DebugLog("qconsole.log", "%s", Dest);
+#else
+		vfprintf(stdout, fmt, argptr);
+		fflush(stdout);
+#endif // _WIN32
+	}
+}
+
+#else // defined(REHLDS_FIXES) and defined(REHLDS_FLIGHT_REC)
+
+void EXT_FUNC Con_DPrintf(const char *fmt, ...)
 {
 	va_list argptr;
 
@@ -1420,3 +1438,5 @@ void EXT_FUNC Con_DPrintf(const char* fmt, ...)
 	}
 	va_end(argptr);
 }
+
+#endif // defined(REHLDS_FIXES) and defined(REHLDS_FLIGHT_REC)

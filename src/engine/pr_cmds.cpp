@@ -919,7 +919,7 @@ edict_t* EXT_FUNC CreateNamedEntity(int className)
 
 void EXT_FUNC PF_Remove_I(edict_t *ed)
 {
-	PF_Remove_I_internal(ed);
+	g_RehldsHookchains.m_PF_Remove_I.callChain(PF_Remove_I_internal, ed);
 }
 
 void EXT_FUNC PF_Remove_I_internal(edict_t *ed)
@@ -1012,6 +1012,11 @@ qboolean EXT_FUNC PR_IsEmptyString(const char *s)
 
 int EXT_FUNC PF_precache_sound_I(const char *s)
 {
+	return g_RehldsHookchains.m_PF_precache_sound_I.callChain(PF_precache_sound_I_internal, s);
+}
+
+int EXT_FUNC PF_precache_sound_I_internal(const char *s)
+{
 	if (!s)
 		Host_Error("%s: NULL pointer", __func__);
 
@@ -1055,11 +1060,14 @@ int EXT_FUNC PF_precache_sound_I(const char *s)
 	}
 
 	Host_Error("%s: '%s' Precache can only be done in spawn functions", __func__, s);
-	//Con_Printf("%s: '%s' Precache can only be done in spawn functions\n", __func__, s);
-	//return 0;
 }
 
 unsigned short EXT_FUNC EV_Precache(int type, const char *psz)
+{
+	return g_RehldsHookchains.m_EV_Precache.callChain(EV_Precache_internal, type, psz);
+}
+
+unsigned short EXT_FUNC EV_Precache_internal(int type, const char *psz)
 {
 	if (!psz)
 		Host_Error("%s: NULL pointer", __func__);
@@ -1116,8 +1124,6 @@ unsigned short EXT_FUNC EV_Precache(int type, const char *psz)
 		}
 
 		Host_Error("%s: '%s' Precache can only be done in spawn functions", __func__, psz);
-		//Con_Printf("%s: '%s' Precache can only be done in spawn functions\n", __func__, psz);
-		//return 0;
 	}
 }
 
@@ -1128,7 +1134,7 @@ void EXT_FUNC EV_PlayReliableEvent_api(IGameClient *cl, int entindex, unsigned s
 
 void EV_PlayReliableEvent(client_t *cl, int entindex, unsigned short eventindex, float delay, event_args_t *pargs)
 {
-	EV_PlayReliableEvent_api(GetRehldsApiClient(cl), entindex, eventindex, delay, pargs);
+	g_RehldsHookchains.m_EV_PlayReliableEvent.callChain(EV_PlayReliableEvent_api, GetRehldsApiClient(cl), entindex, eventindex, delay, pargs);
 }
 
 void EV_PlayReliableEvent_internal(client_t *cl, int entindex, unsigned short eventindex, float delay, event_args_t *pargs)
@@ -1382,6 +1388,11 @@ int SV_LookupModelIndex(const char *name)
 
 int EXT_FUNC PF_precache_model_I(const char *s)
 {
+	return g_RehldsHookchains.m_PF_precache_model_I.callChain(PF_precache_model_I_internal, s);
+}
+
+int EXT_FUNC PF_precache_model_I_internal(const char *s)
+{
 	int iOptional = 0;
 	if (!s)
 		Host_Error("%s: NULL pointer", __func__);
@@ -1436,6 +1447,9 @@ int EXT_FUNC PF_precache_model_I(const char *s)
 	{
 		for (int i = 0; i < MAX_MODELS; i++)
 		{
+			if (!g_psv.model_precache[i])
+				continue;
+
 			// use case-sensitive names to increase performance
 #ifdef REHLDS_FIXES
 			if (!Q_strcmp(g_psv.model_precache[i], s))
@@ -1446,13 +1460,16 @@ int EXT_FUNC PF_precache_model_I(const char *s)
 #endif
 		}
 		Host_Error("%s: '%s' Precache can only be done in spawn functions", __func__, s);
-		//Con_Printf("%s: '%s' Precache can only be done in spawn functions\n", __func__, s);
-		//return 0;
 	}
 }
 
-#ifdef REHLDS_FIXES
 int EXT_FUNC PF_precache_generic_I(const char *s)
+{
+	return g_RehldsHookchains.m_PF_precache_generic_I.callChain(PF_precache_generic_I_internal, s);
+}
+
+#ifdef REHLDS_FIXES
+int EXT_FUNC PF_precache_generic_I_internal(const char *s)
 {
 	if (!s)
 		Host_Error("%s: NULL pointer", __func__);
@@ -1485,8 +1502,7 @@ int EXT_FUNC PF_precache_generic_I(const char *s)
 	}
 
 	if (g_psv.state != ss_loading)
-		Con_Printf("%s: '%s' Precache can only be done in spawn functions\n", __func__, resName);
-		//Host_Error("%s: '%s' Precache can only be done in spawn functions", __func__, resName);
+		Host_Error("%s: '%s' Precache can only be done in spawn functions", __func__, resName);
 
 	if (resCount >= ARRAYSIZE(g_rehlds_sv.precachedGenericResourceNames))
 	{
@@ -1500,7 +1516,7 @@ int EXT_FUNC PF_precache_generic_I(const char *s)
 	return g_rehlds_sv.precachedGenericResourceCount++;
 }
 #else // REHLDS_FIXES
-int EXT_FUNC PF_precache_generic_I(const char *s)
+int EXT_FUNC PF_precache_generic_I_internal(const char *s)
 {
 	if (!s)
 		Host_Error("%s: NULL pointer", __func__);
@@ -1536,7 +1552,6 @@ int EXT_FUNC PF_precache_generic_I(const char *s)
 				return i;
 		}
 		Host_Error("%s: '%s' Precache can only be done in spawn functions", __func__, s);
-		//Con_Printf("%s: '%s' Precache can only be done in spawn functions\n", __func__, resName);
 	}
 }
 #endif // REHLDS_FIXES
@@ -1787,7 +1802,14 @@ void EXT_FUNC PF_aim_I(edict_t *ent, float speed, float *rgflReturn)
 	bestdir[1] = dir[1];
 	bestdir[2] = dir[2];
 	bestdir[0] = dir[0];
-	bestdist = sv_aim.value;
+	if (sv_allow_autoaim.value)
+	{
+		bestdist = sv_aim.value;
+	}
+	else
+	{
+		bestdist = 0.0f;
+	}
 
 	for (int i = 1; i < g_psv.num_edicts; i++)
 	{
@@ -1952,7 +1974,7 @@ void EXT_FUNC PF_crosshairangle_I(const edict_t *clientent, float pitch, float y
 
 edict_t *EXT_FUNC PF_CreateFakeClient_I(const char *netname)
 {
-	return CreateFakeClient_internal(netname);
+	return g_RehldsHookchains.m_CreateFakeClient.callChain(CreateFakeClient_internal, netname);
 }
 
 edict_t *EXT_FUNC CreateFakeClient_internal(const char *netname)
@@ -2102,7 +2124,7 @@ void EXT_FUNC PF_MessageBegin_I(int msg_dest, int msg_type, const float *pOrigin
 	if (msg_type == 0)
 		Sys_Error("%s: Tried to create a message with a bogus message type ( 0 )", __func__);
 
-	gMsgStarted = 1;
+	gMsgStarted = TRUE;
 	gMsgType = msg_type;
 	gMsgEntity = ed;
 	gMsgDest = msg_dest;
@@ -2129,7 +2151,7 @@ void EXT_FUNC PF_MessageEnd_I(void)
 	qboolean MsgIsVarLength = 0;
 	if (!gMsgStarted)
 		Sys_Error("%s: called with no active message\n", __func__);
-	gMsgStarted = 0;
+	gMsgStarted = FALSE;
 
 	if (gMsgEntity && (gMsgEntity->v.flags & FL_FAKECLIENT))
 		return;
@@ -2253,6 +2275,7 @@ void EXT_FUNC PF_WriteByte_I(int iValue)
 {
 	if (!gMsgStarted)
 		Sys_Error("%s: called with no active message\n", __func__);
+
 	MSG_WriteByte(&gMsgBuffer, iValue);
 }
 
@@ -2569,7 +2592,7 @@ const char* EXT_FUNC PF_GetPlayerAuthId(edict_t *e)
 
 void EXT_FUNC PF_BuildSoundMsg_I(edict_t *entity, int channel, const char *sample, float volume, float attenuation, int fFlags, int pitch, int msg_dest, int msg_type, const float *pOrigin, edict_t *ed)
 {
-	PF_BuildSoundMsg_I_internal(entity, channel, sample, volume, attenuation, fFlags, pitch, msg_dest, msg_type, pOrigin, ed);
+	g_RehldsHookchains.m_PF_BuildSoundMsg_I.callChain(PF_BuildSoundMsg_I_internal, entity, channel, sample, volume, attenuation, fFlags, pitch, msg_dest, msg_type, pOrigin, ed);
 }
 
 void EXT_FUNC PF_BuildSoundMsg_I_internal(edict_t *entity, int channel, const char *sample, float volume, float attenuation, int fFlags, int pitch, int msg_dest, int msg_type, const float *pOrigin, edict_t *ed)
@@ -2715,8 +2738,7 @@ void EXT_FUNC PF_ForceUnmodified(FORCE_TYPE type, float *mins, float *maxs, cons
 			++cnode;
 			++i;
 			if (i >= 512)
-				Con_Printf("%s: '%s' Precache can only be done in spawn functions\n", __func__, filename);
-				//Host_Error("%s: '%s' Precache can only be done in spawn functions", __func__, filename);
+				Host_Error("%s: '%s' Precache can only be done in spawn functions", __func__, filename);
 		}
 	}
 }

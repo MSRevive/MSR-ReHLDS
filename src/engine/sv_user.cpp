@@ -42,7 +42,7 @@ edict_t *sv_player;
 qboolean nofind;
 
 #if defined(SWDS) && defined(REHLDS_FIXES)
-const char *clcommands[] = { "status", "name", "kill", "pause", "spawn", "new", "sendres", "dropclient", "kick", "ping", "dlfile", "setinfo", "sendents", "fullupdate", "setpause", "unpause", "noclip", NULL };
+const char *clcommands[] = { "status", "name", "kill", "pause", "spawn", "new", "sendres", "dropclient", "kick", "ping", "dlfile", "setinfo", "sendents", "fullupdate", "setpause", "unpause", "noclip", "god", "notarget", NULL };
 #else
 const char *clcommands[23] = { "status", "god", "notarget", "fly", "name", "noclip", "kill", "pause", "spawn", "new", "sendres", "dropclient", "kick", "ping", "dlfile", "nextdl", "setinfo", "showinfo", "sendents", "fullupdate", "setpause", "unpause", NULL };
 #endif
@@ -129,7 +129,7 @@ void SV_ParseConsistencyResponse(client_t *pSenderClient)
 		if (!Q_memcmp(resbuffer, nullbuffer, sizeof(resbuffer)))
 		{
 			uint32 hash = MSG_ReadBits(32);
-			if (SV_CheckConsistencyResponse_API(GetRehldsApiClient(pSenderClient), r, hash))
+			if (g_RehldsHookchains.m_SV_CheckConsistencyResponse.callChain(SV_CheckConsistencyResponse_API, GetRehldsApiClient(pSenderClient), r, hash))
 				c = idx + 1;
 		}
 		else
@@ -249,7 +249,7 @@ qboolean EXT_FUNC SV_FileInConsistencyList(const char *filename, consistency_t *
 
 int SV_TransferConsistencyInfo(void)
 {
-	return SV_TransferConsistencyInfo_internal();
+	return g_RehldsHookchains.m_SV_TransferConsistencyInfo.callChain(SV_TransferConsistencyInfo_internal);
 }
 
 int EXT_FUNC SV_TransferConsistencyInfo_internal(void)
@@ -328,7 +328,7 @@ bool EXT_FUNC SV_ShouldSendConsistencyList_mod(IGameClient *cl, bool forceConsis
 
 bool SV_ShouldSendConsistencyList(client_t *client, bool forceConsistency)
 {
-	return SV_ShouldSendConsistencyList_mod(GetRehldsApiClient(client), forceConsistency);
+	return g_RehldsHookchains.m_SV_ShouldSendConsistencyList.callChain(SV_ShouldSendConsistencyList_mod, GetRehldsApiClient(client), forceConsistency);
 }
 
 void SV_SendConsistencyList(sizebuf_t *msg)
@@ -511,6 +511,14 @@ void SV_CopyEdictToPhysent(physent_t *pe, int e, edict_t *check)
 	pe->vuser4[2] = check->v.vuser4[2];
 }
 
+bool EXT_FUNC SV_AllowPhysent_mod(edict_t* check, edict_t* sv_player) {
+	return true;
+}
+
+bool SV_AllowPhysent(edict_t* check, edict_t* sv_player) {
+	return g_RehldsHookchains.m_SV_AllowPhysent.callChain(SV_AllowPhysent_mod, check, sv_player);
+}
+
 void SV_AddLinksToPM_(areanode_t *node, float *pmove_mins, float *pmove_maxs)
 {
 	struct link_s *l;
@@ -545,6 +553,11 @@ void SV_AddLinksToPM_(areanode_t *node, float *pmove_mins, float *pmove_maxs)
 
 		if (check->v.solid != SOLID_BSP && check->v.solid != SOLID_BBOX && check->v.solid != SOLID_SLIDEBOX && check->v.solid != SOLID_NOT)
 			continue;
+
+		// Apply our own custom checks
+		if (!SV_AllowPhysent(check, sv_player)) {
+			continue;
+		}
 
 		e = NUM_FOR_EDICT(check);
 		ve = &pmove->visents[pmove->numvisent];
@@ -581,7 +594,7 @@ void SV_AddLinksToPM_(areanode_t *node, float *pmove_mins, float *pmove_maxs)
 		{
 			if (pmove->numphysent >= MAX_PHYSENTS)
 			{
-				Con_DPrintf("SV_AddLinksToPM: pmove->numphysent >= MAX_PHYSENTS\n");
+				Con_DPrintf("SV_AddLinksToPM:  pmove->numphysent >= MAX_PHYSENTS\n");
 				return;
 			}
 			pe = &pmove->physents[pmove->numphysent++];
@@ -590,7 +603,7 @@ void SV_AddLinksToPM_(areanode_t *node, float *pmove_mins, float *pmove_maxs)
 		{
 			if (pmove->nummoveent >= MAX_MOVEENTS)
 			{
-				Con_DPrintf("SV_AddLinksToPM: pmove->nummoveent >= MAX_MOVEENTS\n");
+				Con_DPrintf("SV_AddLinksToPM:  pmove->nummoveent >= MAX_MOVEENTS\n");
 				continue;
 			}
 			pe = &pmove->moveents[pmove->nummoveent++];
@@ -673,35 +686,33 @@ qboolean SV_PlayerRunThink(edict_t *ent, float frametime, double clienttimebase)
 	return ent->free == 0;
 }
 
-void SV_CheckMovingGround(edict_t *player, float frametime)
+void SV_CheckMovingGround(edict_t *ent, float frametime)
 {
 	edict_t *groundentity;
 
-	if (player->v.flags & FL_ONGROUND)
+	if (ent->v.flags & FL_ONGROUND)
 	{
-		groundentity = player->v.groundentity;
+		groundentity = ent->v.groundentity;
 		if (groundentity)
 		{
 			if (groundentity->v.flags & FL_CONVEYOR)
 			{
-				if (player->v.flags & FL_BASEVELOCITY)
-					VectorMA(player->v.basevelocity, groundentity->v.speed, groundentity->v.movedir, player->v.basevelocity);
+				if (ent->v.flags & FL_BASEVELOCITY)
+					VectorMA(ent->v.basevelocity, groundentity->v.speed, groundentity->v.movedir, ent->v.basevelocity);
 				else
-					VectorScale(groundentity->v.movedir, groundentity->v.speed, player->v.basevelocity);
-				player->v.flags |= FL_BASEVELOCITY;
+					VectorScale(groundentity->v.movedir, groundentity->v.speed, ent->v.basevelocity);
+				ent->v.flags |= FL_BASEVELOCITY;
 			}
 		}
 	}
 
-	if (!(player->v.flags & FL_BASEVELOCITY))
+	if (!(ent->v.flags & FL_BASEVELOCITY))
 	{
-		VectorMA(player->v.velocity, frametime * 0.5f + 1.0f, player->v.basevelocity, player->v.velocity);
-		player->v.basevelocity[0] = 0;
-		player->v.basevelocity[1] = 0;
-		player->v.basevelocity[2] = 0;
+		VectorMA(ent->v.velocity, frametime * 0.5f + 1.0f, ent->v.basevelocity, ent->v.velocity);
+		VectorClear(ent->v.basevelocity);
 	}
 
-	player->v.flags &= ~FL_BASEVELOCITY;
+	ent->v.flags &= ~FL_BASEVELOCITY;
 }
 
 void SV_ConvertPMTrace(trace_t *dest, pmtrace_t *src, edict_t *ent)
@@ -871,7 +882,11 @@ void SV_RunCmd(usercmd_t *ucmd, int random_seed)
 	pmove->spectator = 0;
 	pmove->waterjumptime = sv_player->v.teleport_time;
 
+#ifdef REHLDS_FIXES
+	Q_memcpy(&pmove->cmd, ucmd, sizeof(pmove->cmd));
+#else
 	Q_memcpy(&pmove->cmd, &cmd, sizeof(pmove->cmd));
+#endif
 
 	pmove->dead = sv_player->v.health <= 0.0;
 	pmove->movetype = sv_player->v.movetype;
@@ -914,8 +929,16 @@ void SV_RunCmd(usercmd_t *ucmd, int random_seed)
 	pmove->PM_PlaySound = PM_SV_PlaySound;
 	pmove->PM_TraceTexture = PM_SV_TraceTexture;
 	pmove->PM_PlaybackEventFull = PM_SV_PlaybackEventFull;
+	pmove->movevars = &host_client->movevars;
+
+	const movevars_t movevars = *pmove->movevars; // preserve current movevars
+	host_client->movevars = sv_movevars; // always use global movevars as a base
 
 	gEntityInterface.pfnPM_Move(pmove, TRUE);
+
+	// Determine whether movevars has changed or not
+	if (!host_client->fakeclient && Q_memcmp(&movevars, pmove->movevars, sizeof(movevars)) != 0)
+		SV_WriteMovevarsToClient(&host_client->netchan.message, pmove->movevars); // sync movevars for the client
 
 	sv_player->v.deadflag = pmove->deadflag;
 	sv_player->v.effects = pmove->effects;
@@ -1490,7 +1513,7 @@ void EXT_FUNC SV_EstablishTimeBase_mod(IGameClient *cl, usercmd_t *cmds, int dro
 
 void SV_EstablishTimeBase(client_t *cl, usercmd_t *cmds, int dropped, int numbackup, int numcmds)
 {
-	return SV_EstablishTimeBase_mod(GetRehldsApiClient(cl), cmds, dropped, numbackup, numcmds);
+	return g_RehldsHookchains.m_SV_EstablishTimeBase.callChain(SV_EstablishTimeBase_mod, GetRehldsApiClient(cl), cmds, dropped, numbackup, numcmds);
 }
 
 void SV_EstablishTimeBase_internal(client_t *cl, usercmd_t *cmds, int dropped, int numbackup, int numcmds)
@@ -1776,7 +1799,10 @@ void EXT_FUNC SV_HandleClientMessage_api(IGameClient* client, uint8 opcode) {
 	client_t* cl = client->GetClient();
 	if (opcode < clc_bad || opcode > clc_cvarvalue2)
 	{
+		// TODO: Are we forced to use msg_badread for break the loop.
+		static_assert(REHLDS_API_VERSION_MAJOR <= 3, "Bump major API DETECTED!! You shall rework the hookchain, make function returnable");
 		msg_badread = 1;
+
 		Con_Printf("SV_ReadClientMessage: unknown command char (%d)\n", opcode);
 		SV_DropClient(cl, FALSE, "Bad command character in client command");
 		return;
@@ -1837,7 +1863,7 @@ void SV_ExecuteClientMessage(client_t *cl)
 		if (c == -1)
 			return;
 
-		SV_HandleClientMessage_api(apiClient, c);
+		g_RehldsHookchains.m_HandleNetCommand.callChain(SV_HandleClientMessage_api, apiClient, c);
 
 #ifdef REHLDS_FIXES
 		// FIXED: Don't handle remaining packets if got dropclient above

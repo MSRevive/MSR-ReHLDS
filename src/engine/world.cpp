@@ -1179,6 +1179,7 @@ void SV_ClipToLinks(areanode_t *node, moveclip_t *clip)
 
 		if (touch->v.solid == SOLID_TRIGGER)
 			Sys_Error("%s: Trigger in clipping list", __func__);
+
 #ifndef REHLDS_OPT_PEDANTIC
 		if (gNewDLLFunctions.pfnShouldCollide && !gNewDLLFunctions.pfnShouldCollide(touch, clip->passedict))
 #ifdef REHLDS_FIXES

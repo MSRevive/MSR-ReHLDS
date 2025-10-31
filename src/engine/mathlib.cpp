@@ -117,7 +117,7 @@ float VectorNormalize(vec3_t v)
 	float length, ilength;
 	length = Length(v);
 
-	//const int res = clamp(0.0, 1.0, 2.0);
+	const int res = clamp(0.0, 1.0, 2.0);
 
 	if (length)
 	{

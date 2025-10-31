@@ -111,7 +111,7 @@ qboolean TEX_InitFromWad(char *path)
 		texfile = FS_Open(wadPath, "rb");
 		if (!texfile)
 			Sys_Error("%s: couldn't open %s\n", __func__, wadPath);
-		
+
 		texfiles[nTexFiles++] = texfile;
 		Con_DPrintf("Using WAD File: %s\n", wadPath);
 		SafeRead(texfile, &header, 12);

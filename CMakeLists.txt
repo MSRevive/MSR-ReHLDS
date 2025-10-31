@@ -40,6 +40,9 @@ set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
 set(BASEDIR "${CMAKE_CURRENT_SOURCE_DIR}")
 
+# Add version directory to include paths
+include_directories("${BASEDIR}/version")
+
 function(set_common_properties TARGET_NAME)
 	# Compile Flags and such.
 	set_target_properties(${TARGET_NAME} PROPERTIES PREFIX "")

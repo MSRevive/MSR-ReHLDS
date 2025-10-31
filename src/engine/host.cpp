@@ -356,22 +356,29 @@ void Host_WriteCustomConfig(void)
 #endif // SWDS
 }
 
-void SV_ClientPrintf(const char* fmt, ...)
+void SV_ClientPrintf(const char *fmt, ...)
 {
 	if (!host_client->fakeclient)
 	{
-		char string[1024], output[1024];
-
 		va_list va;
+		char string[1024];
+
 		va_start(va, fmt);
 		Q_vsnprintf(string, ARRAYSIZE(string) - 1, fmt, va);
 		va_end(va);
 
-		Q_strlcpy(output, string, min(strlen(string) + 1, sizeof(output)));
-
-		MSG_WriteByte(&host_client->netchan.message, svc_print);
-		MSG_WriteString(&host_client->netchan.message, output);
+		g_RehldsHookchains.m_SV_ClientPrintf.callChain(SV_ClientPrintf_internal, string);
 	}
+}
+
+void EXT_FUNC SV_ClientPrintf_internal(const char *Dest)
+{
+	char string[1024];
+
+	Q_strlcpy(string, Dest);
+
+	MSG_WriteByte(&host_client->netchan.message, svc_print);
+	MSG_WriteString(&host_client->netchan.message, string);
 }
 
 void SV_BroadcastPrintf(const char *fmt, ...)
@@ -428,7 +435,7 @@ void EXT_FUNC SV_DropClient_api(IGameClient* cl, bool crash, const char* fmt, ..
 	Q_vsnprintf(buf, ARRAYSIZE(buf) - 1, fmt, argptr);
 	va_end(argptr);
 
-	SV_DropClient_hook(cl, crash, buf);
+	g_RehldsHookchains.m_SV_DropClient.callChain(SV_DropClient_hook, cl, crash, buf);
 }
 
 void SV_DropClient(client_t *cl, qboolean crash, const char *fmt, ...)
@@ -440,7 +447,7 @@ void SV_DropClient(client_t *cl, qboolean crash, const char *fmt, ...)
 	Q_vsnprintf(buf, ARRAYSIZE(buf) - 1, fmt, argptr);
 	va_end(argptr);
 
-	SV_DropClient_hook(GetRehldsApiClient(cl), crash != FALSE, buf);
+	g_RehldsHookchains.m_SV_DropClient.callChain(SV_DropClient_hook, GetRehldsApiClient(cl), crash != FALSE, buf);
 }
 
 void SV_DropClient_internal(client_t *cl, qboolean crash, const char *string)
@@ -732,11 +739,8 @@ qboolean Master_IsLanGame(void)
 
 void Master_Heartbeat_f(void)
 {
-	auto* pPlatformHolder = CRehldsPlatformHolder::get();
-	if ((pPlatformHolder == nullptr) || (pPlatformHolder->SteamGameServer() == nullptr))
-		return;
-
-	pPlatformHolder->SteamGameServer()->ForceHeartbeat();
+	//Steam_ForceHeartbeat in move?
+	//CRehldsPlatformHolder::get()->SteamGameServer()->ForceHeartbeat();
 }
 
 void Host_ComputeFPS(double frametime)
@@ -868,6 +872,13 @@ void _Host_Frame(float time)
 	if (!Host_FilterTime(time))
 		return;
 
+#ifdef REHLDS_FLIGHT_REC
+	static long frameCounter = 0;
+	if (rehlds_flrec_frame.string[0] != '0') {
+		FR_StartFrame(frameCounter);
+	}
+#endif //REHLDS_FLIGHT_REC
+
 	SystemWrapper_RunFrame(host_frametime);
 
 	if (g_modfuncs.m_pfnFrameBegin)
@@ -928,6 +939,13 @@ void _Host_Frame(float time)
 
 	//Rehlds Security
 	Rehlds_Security_Frame();
+
+#ifdef REHLDS_FLIGHT_REC
+	if (rehlds_flrec_frame.string[0] != '0') {
+		FR_EndFrame(frameCounter);
+	}
+	frameCounter++;
+#endif //REHLDS_FLIGHT_REC
 }
 
 int Host_Frame(float time, int iState, int *stateInfo)
@@ -1098,10 +1116,16 @@ int Host_Init(quakeparms_t *parms)
 	Ed_StrPool_Init();
 #endif //REHLDS_FIXES
 
+	FR_Init(); //don't put it under REHLDS_FLIGHT_REC to allow recording via Rehlds API
+
 	Cbuf_Init();
 	Cmd_Init();
 	Cvar_Init();
 	Cvar_CmdInit();
+
+#ifdef REHLDS_FLIGHT_REC
+	FR_Rehlds_Init();
+#endif //REHLDS_FLIGHT_REC
 
 	V_Init();
 	Chase_Init();
@@ -1174,7 +1198,11 @@ int Host_Init(quakeparms_t *parms)
 	else
 	{
 		Cvar_RegisterVariable(&suitvolume);
+#ifdef REHLDS_FIXES
+		Cvar_RegisterVariable(&r_cachestudio);
+#endif
 	}
+
 	Cbuf_InsertText("exec valve.rc\n");
 	Hunk_AllocName(0, "-HOST_HUNKLEVEL-");
 	host_hunklevel = Hunk_LowMark();

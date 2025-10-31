@@ -32,13 +32,7 @@
 #include "filesystem_internal.h"
 #include "sys_dll.h"
 #include "server.h"
-#include "archtypes.h"
-#include "cmd_rehlds.h"
-#include "rehlds_interfaces.h"
-#include "interface.h"
-#include "model.h"
-#include "ObjectList.h"
-#include "pr_dlls.h"
+#include "rehlds_api.h"
 
 const int MAX_COMMAND_LINE_PARAMS = 50;
 
@@ -91,6 +85,7 @@ NOXREF void Info_WriteVars(FileHandle_t fp);
 void Host_WriteConfiguration(void);
 void Host_WriteCustomConfig(void);
 void SV_ClientPrintf(const char *fmt, ...);
+void SV_ClientPrintf_internal(const char *Dest);
 void SV_BroadcastPrintf(const char *fmt, ...);
 void Host_ClientCommands(const char *fmt, ...);
 void SV_DropClient_api(IGameClient* cl, bool crash, const char* fmt, ...);

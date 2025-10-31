@@ -47,7 +47,7 @@ CCommandLine::~CCommandLine()
 	}
 }
 
-char *CopyString(const char *src)
+static char *CopyString(const char *src)
 {
 	if (!src)
 		return nullptr;

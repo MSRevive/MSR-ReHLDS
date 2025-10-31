@@ -1,111 +1,116 @@
-if(WIN32)
-	add_executable(dedicated WIN32)
+add_library(steam_api SHARED IMPORTED)
+
+target_include_directories(steam_api INTERFACE ${BASEDIR}/src/public/steam)
+
+if (WIN32)
+	set_target_properties(steam_api PROPERTIES IMPORTED_IMPLIB "${BASEDIR}/lib/public/steam_api.lib")
 else()
-	add_executable(dedicated)
+	set_target_properties(steam_api PROPERTIES IMPORTED_IMPLIB "${BASEDIR}/lib/public/linux32/libsteam_api.so")
 endif()
 
-################################################################################
-# Target Properties
-################################################################################
-# if(MSVC)
-# 	target_compile_options(dedicated PUBLIC /arch:SSE2)
-# else()
-# 	target_compile_options(dedicated PUBLIC -msse2)
-# endif()
+add_executable(dedicated)
 
 set_common_properties(dedicated)
 
 target_link_libraries(dedicated PRIVATE
 	$<$<PLATFORM_ID:Windows>:ws2_32>
+	$<$<PLATFORM_ID:Windows>:user32>
+	$<$<PLATFORM_ID:Windows>:shell32>
 	$<$<PLATFORM_ID:Windows>:winmm>
 	$<$<PLATFORM_ID:Linux>:dl>
+	$<$<PLATFORM_ID:Linux>:rt>
+	steam_api
 )
 
 # Include directories
 target_include_directories(dedicated PRIVATE
-	${CMAKE_CURRENT_SOURCE_DIR}
+	${CMAKE_CURRENT_SOURCE_DIR}/src
 	${BASEDIR}/src
 	${BASEDIR}/src/common
 	${BASEDIR}/src/engine
 	${BASEDIR}/src/public
 	${BASEDIR}/src/public/rehlds
+	${BASEDIR}/src/pm_shared
+	${BASEDIR}/src/game_shared
 )
 
 target_compile_definitions(dedicated PRIVATE
 	LAUNCHER_FIXES
-	DEDICATED
 	_CONSOLE
+	DEDICATED
 )
 
-if (UNIX)
-	set_target_properties(dedicated PROPERTIES OUTPUT_NAME "hlds_linux")
-endif(UNIX)
+# Set Windows subsystem to CONSOLE and use WinMain entry point
+if(WIN32)
+	set_target_properties(dedicated PROPERTIES
+		WIN32_EXECUTABLE FALSE
+	)
+	target_link_options(dedicated PRIVATE
+		/SUBSYSTEM:CONSOLE
+		/ENTRY:WinMainCRTStartup
+	)
+endif()
 
 ################################################################################
 # Source groups
 ################################################################################
-set(Resources
-	$<$<PLATFORM_ID:Windows>:${CMAKE_CURRENT_SOURCE_DIR}/icon.ico>
-	$<$<PLATFORM_ID:Windows>:${CMAKE_CURRENT_SOURCE_DIR}/resource.h>
-	$<$<PLATFORM_ID:Windows>:${CMAKE_CURRENT_SOURCE_DIR}/dedicated.rc>
-)
-source_group("Resources" FILES ${Resources})
-
-set(Misc
-	"../public/tier0/pointeroverride.asm"
-)
-source_group("Misc" FILES ${Misc})
-
 set(Source_Files
-	"../common/commandline.cpp"
-	"dedicated.h"
-	"dedicated_exports.cpp"
-	"precompiled.h"
-	"public_amalgamation.cpp"
-	"sys_ded.cpp"
-	"sys_ded.h"
-	$<$<PLATFORM_ID:Windows>:${CMAKE_CURRENT_SOURCE_DIR}/sys_window.cpp>
-	$<$<PLATFORM_ID:Windows>:${CMAKE_CURRENT_SOURCE_DIR}/conproc.cpp>
-	$<$<PLATFORM_ID:Windows>:${CMAKE_CURRENT_SOURCE_DIR}/conproc.h>
-	$<$<PLATFORM_ID:Linux>:${CMAKE_CURRENT_SOURCE_DIR}/sys_linux.cpp>
-	$<$<PLATFORM_ID:Linux>:${CMAKE_CURRENT_SOURCE_DIR}/dbg.cpp>
+	"src/conproc.cpp"
+	"src/conproc.h"
+	"src/dbg.cpp"
+	"src/dbg.h"
+	"src/dedicated_exports.cpp"
+	"src/dedicated.h"
+	"src/isys.h"
+	"src/precompiled.cpp"
+	"src/precompiled.h"
+	"src/public_amalgamation.cpp"
+	"src/sys_ded.cpp"
+	"src/sys_ded.h"
+	"src/sys_window.cpp"
+	"src/vgui/vguihelpers.cpp"
+	"src/vgui/vguihelpers.h"
 )
 source_group("Source Files" FILES ${Source_Files})
 
 set(Common
-	"../common/minidump.cpp"
-	"../common/minidump.h"
-	"../common/ObjectList.cpp"
-	"../common/ObjectList.h"
-	"../common/SteamAppStartUp.cpp"
-	"../common/SteamAppStartUp.h"
 	"../common/textconsole.cpp"
 	"../common/textconsole.h"
-	$<$<PLATFORM_ID:Windows>:${BASEDIR}/src/common/TextConsoleWin32.cpp>
-	$<$<PLATFORM_ID:Windows>:${BASEDIR}/src/common/TextConsoleWin32.h>
-	$<$<PLATFORM_ID:Linux>:${BASEDIR}/src/common/TextConsoleUnix.cpp>
-	$<$<PLATFORM_ID:Linux>:${BASEDIR}/src/common/TextConsoleUnix.h>
+	"../common/TextConsoleWin32.cpp"
+	"../common/TextConsoleWin32.h"
+	"../common/TextConsoleUnix.cpp"
+	"../common/TextConsoleUnix.h"
+	"../common/SteamAppStartUp.cpp"
+	"../common/SteamAppStartUp.h"
+	"../common/ObjectList.cpp"
+	"../common/ObjectList.h"
+	"../common/ObjectDictionary.cpp"
+	"../common/ObjectDictionary.h"
+	"../common/commandline.cpp"
+	"../common/minidump.cpp"
+	"../common/minidump.h"
 )
 source_group("Common" FILES ${Common})
 
 set(Engine
 	"../engine/mem.cpp"
+	"../engine/mem.h"
 )
 source_group("Engine" FILES ${Engine})
 
-set(VGUI
-	"vguihelpers.cpp"
-	"vguihelpers.h"
+set(Public
+	"../public/interface.h"
+	"../public/iregistry.h"
 )
-source_group("VGUI" FILES ${VGUI})
+source_group("Public" FILES ${Public})
 
 set(ALL_FILES
-	${Resources}
-	${Misc}
 	${Source_Files}
 	${Common}
 	${Engine}
-	${VGUI}
+	${Public}
 )
 
+target_precompile_headers(dedicated PRIVATE 
+	"./src/precompiled.h")
 target_sources(dedicated PRIVATE ${ALL_FILES})

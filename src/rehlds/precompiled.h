@@ -1,6 +1,6 @@
 #pragma once
 
-#include "appversion.h"
+#include "version/appversion.h"
 
 #include "osconfig.h"
 
@@ -22,27 +22,36 @@
 
 #include "engine.h"
 #include "platform.h"
+#include "RehldsRuntimeConfig.h"
 
 #include "interface.h"
 #include "iregistry.h"
+#include "icommandline.h"
 
 #include "utlbuffer.h"
 #include "utlrbtree.h"
 
-#include "rehlds/platform.h"
+// Common classes  
+#include "ObjectList.h"
+#include "ObjectDictionary.h"
 
 #include "bzip2/bzlib.h"
+
+// Steam API
+#include "steam/steam_api.h"
+#include "steam/steam_gameserver.h"
 #include "igame.h"
 #include "sys_linuxwnd.h"
 
 #include "iengine.h"
-#include <vector>
-#include "cmd_rehlds.h"
-#include "model.h"
-#include "ObjectList.h"
-#include "pr_dlls.h"
+#include "hookchains_impl.h"
 #include "rehlds_interfaces.h"
 #include "rehlds_interfaces_impl.h"
+#include "rehlds_api.h"
+#include "rehlds_api_impl.h"
+#include "FlightRecorderImpl.h"
+#include "flight_recorder.h"
+#include "rehlds_messagemngr_impl.h"
 #include "rehlds_security.h"
 
 #include "dlls/cdll_dll.h"

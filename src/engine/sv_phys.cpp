@@ -45,7 +45,7 @@
 vec3_t *g_moved_from;
 edict_t **g_moved_edict;
 
-cvar_t sv_maxvelocity = { "sv_maxvelocity", "5000", 0, 0.0f, NULL };
+cvar_t sv_maxvelocity = { "sv_maxvelocity", "2000", 0, 0.0f, NULL };
 cvar_t sv_gravity = { "sv_gravity", "800", FCVAR_SERVER, 0.0f, NULL };
 cvar_t sv_bounce = { "sv_bounce", "1", FCVAR_SERVER, 0.0f, NULL };
 cvar_t sv_stepsize = { "sv_stepsize", "18", FCVAR_SERVER, 0.0f, NULL };
@@ -1491,28 +1491,7 @@ void SV_Physics()
 		if (i > 0 && i <= g_psvs.maxclients)
 			continue;
 
-		if (ent->v.flags & FL_ONGROUND)
-		{
-			edict_t *groundentity = ent->v.groundentity;
-			if (groundentity && (groundentity->v.flags & FL_CONVEYOR))
-			{
-				if (ent->v.flags & FL_BASEVELOCITY)
-					VectorMA(ent->v.basevelocity, groundentity->v.speed, groundentity->v.movedir, ent->v.basevelocity);
-				else
-					VectorScale(groundentity->v.movedir, groundentity->v.speed, ent->v.basevelocity);
-
-				ent->v.flags |= FL_BASEVELOCITY;
-			}
-		}
-
-		if (!(ent->v.flags & FL_BASEVELOCITY))
-		{
-			// Apply momentum (add in half of the previous frame of velocity first)
-			VectorMA(ent->v.velocity, (host_frametime * 0.5f + 1.0f), ent->v.basevelocity, ent->v.velocity);
-			VectorClear(ent->v.basevelocity);
-		}
-
-		ent->v.flags &= ~FL_BASEVELOCITY;
+		SV_CheckMovingGround(ent, host_frametime);
 
 		switch (ent->v.movetype)
 		{
