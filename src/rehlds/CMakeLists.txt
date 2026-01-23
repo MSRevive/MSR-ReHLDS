@@ -64,7 +64,7 @@ endif(UNIX)
 ################################################################################
 # Source groups
 ################################################################################
-set(Source_Files
+set(Src_Files
 	"engine.h"
 	"flight_recorder.cpp"
 	"flight_recorder.h"
@@ -91,7 +91,7 @@ set(Source_Files
 	"RehldsRuntimeConfig.h"
 	"structSizeCheck.cpp"
 )
-source_group("Source Files" FILES ${Source_Files})
+source_group("Source Files" FILES ${Src_Files})
 
 set(Common
 	"../common/BaseSystemModule.cpp"

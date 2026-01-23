@@ -21,10 +21,28 @@ target_compile_definitions(filesystem PRIVATE
 	FILESYSTEM_STDIO_EXPORTS
 )
 
+# NOTE: Don't use IPO or LTO with '--wrap' may make this feature ineffective
+set(WRAP_FUNCS_LIST
+	"scandir" "opendir" "freopen" "fopen" "fopen64" "open" "open64" "creat"
+	"access" "stat" "lstat" "__xstat" "__lxstat" "__xstat64" "__lxstat64"
+	"chmod" "chown" "lchown" "unlink" "symlink" "link" "mknod" "mount"
+	"mkfifo" "rename" "utime" "utimes" "mkdir" "rmdir"
+)
+
+foreach(f ${WRAP_FUNCS_LIST})
+	set(LINK_FLAGS "${LINK_FLAGS} -Wl,-wrap,${f}")
+endforeach()
+
+set_target_properties(filesystem PROPERTIES OUTPUT_NAME "FileSystem_Stdio")
+if (UNIX)
+	set_target_properties(filesystem PROPERTIES OUTPUT_NAME "filesystem_stdio")
+	set_target_properties(filesystem PROPERTIES LINK_FLAGS ${LINK_FLAGS})
+endif(UNIX)
+
 ################################################################################
 # Source groups
 ################################################################################
-set(Source_Files
+set(Src_Files
 	"src/BaseFileSystem.cpp"
 	"src/BaseFileSystem.h"
 	"src/filesystem_helpers.cpp"
@@ -39,7 +57,7 @@ set(Source_Files
 	"src/precompiled.h"
 	"src/public_amalgamation.cpp"
 )
-source_group("Source Files" FILES ${Source_Files})
+source_group("Source Files" FILES ${Src_Files})
 
 set(ALL_FILES
 	${Source_Files}
