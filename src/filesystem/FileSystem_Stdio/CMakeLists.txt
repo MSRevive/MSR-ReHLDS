@@ -60,7 +60,7 @@ set(Src_Files
 source_group("Source Files" FILES ${Src_Files})
 
 set(ALL_FILES
-	${Source_Files}
+	${Src_Files}
 )
 
 target_precompile_headers(filesystem PRIVATE 

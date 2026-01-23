@@ -12,7 +12,7 @@ set(Header_Files
 )
 source_group("Header Files" FILES ${Header_Files})
 
-set(Source_Files
+set(Src_Files
     "blocksort.c"
     "bzlib.c"
     "compress.c"
@@ -21,11 +21,11 @@ set(Source_Files
     "huffman.c"
     "randtable.c"
 )
-source_group("Source Files" FILES ${Source_Files})
+source_group("Source Files" FILES ${Src_Files})
 
 set(ALL_FILES
     ${Header_Files}
-    ${Source_Files}
+    ${Src_Files}
 )
 
 target_sources(bzip2 PRIVATE ${ALL_FILES})

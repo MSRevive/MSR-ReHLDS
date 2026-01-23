@@ -54,7 +54,7 @@ endif()
 ################################################################################
 # Source groups
 ################################################################################
-set(Source_Files
+set(Src_Files
 	"src/conproc.cpp"
 	"src/conproc.h"
 	"src/dbg.cpp"
@@ -71,7 +71,7 @@ set(Source_Files
 	"src/vgui/vguihelpers.cpp"
 	"src/vgui/vguihelpers.h"
 )
-source_group("Source Files" FILES ${Source_Files})
+source_group("Source Files" FILES ${Src_Files})
 
 set(Common
 	"../common/textconsole.cpp"
@@ -105,7 +105,7 @@ set(Public
 source_group("Public" FILES ${Public})
 
 set(ALL_FILES
-	${Source_Files}
+	${Src_Files}
 	${Common}
 	${Engine}
 	${Public}
