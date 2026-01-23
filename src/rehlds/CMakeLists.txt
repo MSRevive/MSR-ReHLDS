@@ -1,10 +1,12 @@
 add_library(steam_api SHARED IMPORTED)
-add_library(libacof32 SHARED IMPORTED)
 
 target_include_directories(steam_api INTERFACE ${BASEDIR}/src/public/steam)
 
 if (WIN32)
 	set_target_properties(steam_api PROPERTIES IMPORTED_IMPLIB "${BASEDIR}/lib/public/steam_api.lib")
+
+	# this is only needed for windows, so just put it here.
+	add_library(libacof32 SHARED IMPORTED)
 	set_target_properties(libacof32 PROPERTIES IMPORTED_IMPLIB "${BASEDIR}/lib/public/libacof32.lib")
 else()
 	set_target_properties(steam_api PROPERTIES IMPORTED_IMPLIB "${BASEDIR}/lib/public/linux/libsteam_api.so")
@@ -21,12 +23,12 @@ set_common_properties(rehlds)
 target_link_libraries(rehlds PRIVATE
 	$<$<PLATFORM_ID:Windows>:ws2_32>
 	$<$<PLATFORM_ID:Windows>:psapi>
+	$<$<PLATFORM_ID:Windows:libacof32>
 	$<$<PLATFORM_ID:Linux>:dl>
 	$<$<PLATFORM_ID:Linux>:rt>
 	$<$<PLATFORM_ID:Linux>:m>
 	$<$<PLATFORM_ID:Linux>:aelf32>
 	steam_api
-	libacof32
 	bzip2
 )
 
