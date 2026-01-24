@@ -10,7 +10,7 @@ if (WIN32)
 	add_library(libacof32 SHARED IMPORTED)
 	set_target_properties(libacof32 PROPERTIES IMPORTED_IMPLIB "${BASEDIR}/lib/public/libacof32.lib")
 else()
-	set_target_properties(steam_api PROPERTIES IMPORTED_IMPLIB "${BASEDIR}/lib/public/linux/libsteam_api.so")
+	set_target_properties(steam_api PROPERTIES IMPORTED_IMPLIB "${BASEDIR}/lib/public/linux32/libsteam_api.so")
 endif()
 
 add_dependencies(rehlds
