@@ -30,7 +30,7 @@
 #include <string.h>
 #endif
 
-#include "bzlib.h"
+#include "bzip2/bzlib.h"
 
 
 

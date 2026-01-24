@@ -1,31 +1,25 @@
-add_library(bzip2 STATIC)
+cmake_minimum_required(VERSION 3.1)
+project(bzip2 C)
 
-# Make bzlib.h available to targets that link against bzip2
-target_include_directories(bzip2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g0 -O1 -fno-stack-protector -fno-strict-aliasing -fno-strict-overflow")
 
-################################################################################
-# Source groups
-################################################################################
-set(Header_Files
-    "bzlib.h"
-    "bzlib_private.h"
-)
-source_group("Header Files" FILES ${Header_Files})
-
-set(Src_Files
-    "blocksort.c"
-    "bzlib.c"
-    "compress.c"
-    "crctable.c"
-    "decompress.c"
-    "huffman.c"
-    "randtable.c"
-)
-source_group("Source Files" FILES ${Src_Files})
-
-set(ALL_FILES
-    ${Header_Files}
-    ${Src_Files}
+set(BZIP2_SRCS
+	"src/blocksort.c"
+	"src/bzlib.c"
+	"src/compress.c"
+	"src/crctable.c"
+	"src/decompress.c"
+	"src/huffman.c"
+	"src/precompiled.c"
+	"src/randtable.c"
+	"src/bzlib_private.h"
 )
 
-target_sources(bzip2 PRIVATE ${ALL_FILES})
+include_directories(
+	"include"
+)
+
+add_library(bzip2 STATIC ${BZIP2_SRCS})
+set_target_properties(bzip2 PROPERTIES
+	COMPILE_FLAGS "-m32"
+)

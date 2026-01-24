@@ -1,116 +1,120 @@
-add_library(steam_api SHARED IMPORTED)
+cmake_minimum_required(VERSION 3.1)
+project(hlds CXX)
 
-target_include_directories(steam_api INTERFACE ${BASEDIR}/src/public/steam)
+option(DEBUG "Build with debug information." OFF)
 
-if (WIN32)
-	set_target_properties(steam_api PROPERTIES IMPORTED_IMPLIB "${BASEDIR}/lib/public/steam_api.lib")
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Avoid -rdynamic -fPIC options
+set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
+
+set(COMPILE_FLAGS "-m32 -fno-pic -fno-pie -U_FORTIFY_SOURCE -DFORTIFY_SOURCE=0")
+set(LINK_FLAGS "-m32 -no-pie -Wl,--no-export-dynamic")
+
+set(COMPILE_FLAGS "${COMPILE_FLAGS} -Wall -fno-exceptions -fno-strict-aliasing -fno-strict-overflow")
+
+if (DEBUG)
+	set(COMPILE_FLAGS "${COMPILE_FLAGS} -g3 -O3 -ggdb")
 else()
-	set_target_properties(steam_api PROPERTIES IMPORTED_IMPLIB "${BASEDIR}/lib/public/linux32/libsteam_api.so")
+	set(COMPILE_FLAGS "${COMPILE_FLAGS} -g0 -O3 -fno-stack-protector")
 endif()
 
-add_executable(dedicated)
+# Check Intel C++ compiler
+if ("$ENV{CXX}" MATCHES "icpc")
+	set(COMPILE_FLAGS "${COMPILE_FLAGS} -Qoption,cpp,--treat_func_as_string_literal_cpp")
+	set(LINK_FLAGS "${LINK_FLAGS} -static-intel -no-intel-extensions")
 
-set_common_properties(dedicated)
+	if (NOT DEBUG)
+		set(COMPILE_FLAGS "${COMPILE_FLAGS} -ipo")
+		set(LINK_FLAGS "${COMPILE_FLAGS} -ipo")
+	endif()
+else()
+	# Produce code optimized for the most common IA32/AMD64/EM64T processors.
+	# As new processors are deployed in the marketplace, the behavior of this option will change.
+	set(COMPILE_FLAGS "${COMPILE_FLAGS} \
+		-mtune=generic -msse3\
+		-fpermissive -fno-sized-deallocation\
+		-Wno-unused-result")
 
-target_link_libraries(dedicated PRIVATE
-	$<$<PLATFORM_ID:Windows>:ws2_32>
-	$<$<PLATFORM_ID:Windows>:user32>
-	$<$<PLATFORM_ID:Windows>:shell32>
-	$<$<PLATFORM_ID:Windows>:winmm>
-	$<$<PLATFORM_ID:Linux>:dl>
-	$<$<PLATFORM_ID:Linux>:rt>
-	steam_api
-)
-
-# Include directories
-target_include_directories(dedicated PRIVATE
-	${CMAKE_CURRENT_SOURCE_DIR}/src
-	${BASEDIR}/src
-	${BASEDIR}/src/common
-	${BASEDIR}/src/engine
-	${BASEDIR}/src/public
-	${BASEDIR}/src/public/rehlds
-	${BASEDIR}/src/pm_shared
-	${BASEDIR}/src/game_shared
-)
-
-target_compile_definitions(dedicated PRIVATE
-	LAUNCHER_FIXES
-	_CONSOLE
-	DEDICATED
-)
-
-# Set Windows subsystem to CONSOLE and use WinMain entry point
-if(WIN32)
-	set_target_properties(dedicated PROPERTIES
-		WIN32_EXECUTABLE FALSE
-	)
-	target_link_options(dedicated PRIVATE
-		/SUBSYSTEM:CONSOLE
-		/ENTRY:WinMainCRTStartup
-	)
+	# Check if not Clang compiler AND GCC >= 8.3
+	if (NOT "$ENV{CXX}" MATCHES "clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 8.0)
+		set(COMPILE_FLAGS "${COMPILE_FLAGS} -Wno-stringop-truncation -Wno-format-truncation")
+	endif()
 endif()
 
-################################################################################
-# Source groups
-################################################################################
-set(Src_Files
-	"src/conproc.cpp"
-	"src/conproc.h"
+# GCC >= 8.3
+if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 8.0)
+	set(COMPILE_FLAGS "${COMPILE_FLAGS} -fcf-protection=none")
+endif()
+
+set(PROJECT_SRC_DIR
+	"${PROJECT_SOURCE_DIR}/src"
+	"${PROJECT_SOURCE_DIR}/../"
+)
+
+set(PROJECT_PUBLIC_DIR
+	"${PROJECT_SOURCE_DIR}/../engine"
+	"${PROJECT_SOURCE_DIR}/../common"
+	"${PROJECT_SOURCE_DIR}/../public"
+	"${PROJECT_SOURCE_DIR}/../public/rehlds"
+)
+
+set(DEDICATED_SRCS
 	"src/dbg.cpp"
-	"src/dbg.h"
 	"src/dedicated_exports.cpp"
-	"src/dedicated.h"
-	"src/isys.h"
-	"src/precompiled.cpp"
-	"src/precompiled.h"
 	"src/public_amalgamation.cpp"
 	"src/sys_ded.cpp"
-	"src/sys_ded.h"
-	"src/sys_window.cpp"
+	"src/sys_linux.cpp"
 	"src/vgui/vguihelpers.cpp"
-	"src/vgui/vguihelpers.h"
 )
-source_group("Source Files" FILES ${Src_Files})
 
-set(Common
+set(COMMON_SRCS
 	"../common/textconsole.cpp"
-	"../common/textconsole.h"
-	"../common/TextConsoleWin32.cpp"
-	"../common/TextConsoleWin32.h"
 	"../common/TextConsoleUnix.cpp"
-	"../common/TextConsoleUnix.h"
 	"../common/SteamAppStartUp.cpp"
-	"../common/SteamAppStartUp.h"
 	"../common/ObjectList.cpp"
-	"../common/ObjectList.h"
-	"../common/ObjectDictionary.cpp"
-	"../common/ObjectDictionary.h"
 	"../common/commandline.cpp"
 	"../common/minidump.cpp"
-	"../common/minidump.h"
-)
-source_group("Common" FILES ${Common})
-
-set(Engine
 	"../engine/mem.cpp"
-	"../engine/mem.h"
-)
-source_group("Engine" FILES ${Engine})
-
-set(Public
-	"../public/interface.h"
-	"../public/iregistry.h"
-)
-source_group("Public" FILES ${Public})
-
-set(ALL_FILES
-	${Src_Files}
-	${Common}
-	${Engine}
-	${Public}
 )
 
-target_precompile_headers(dedicated PRIVATE 
-	"./src/precompiled.h")
-target_sources(dedicated PRIVATE ${ALL_FILES})
+if (NOT TARGET appversion)
+	add_custom_target(appversion DEPENDS COMMAND "${PROJECT_SOURCE_DIR}/../version/appversion.sh" "${PROJECT_SOURCE_DIR}/../..")
+endif()
+
+add_executable(hlds ${appversion.sh} ${DEDICATED_SRCS})
+add_dependencies(hlds appversion)
+
+target_include_directories(hlds PRIVATE
+	${PROJECT_SRC_DIR}
+	${PROJECT_PUBLIC_DIR}
+)
+
+target_compile_definitions(hlds PRIVATE
+	LAUNCHER_FIXES
+	_CONSOLE
+	_LINUX
+	LINUX
+	_GLIBCXX_USE_CXX11_ABI=0
+	_stricmp=strcasecmp
+	_strnicmp=strncasecmp
+	_strdup=strdup
+	_vsnprintf=vsnprintf
+)
+
+target_sources(hlds PRIVATE
+	${COMMON_SRCS}
+)
+
+target_link_libraries(hlds PRIVATE
+	dl
+)
+
+set_target_properties(hlds PROPERTIES
+	OUTPUT_NAME hlds_linux
+	PREFIX ""
+	COMPILE_FLAGS ${COMPILE_FLAGS}
+	LINK_FLAGS ${LINK_FLAGS}
+	POSITION_INDEPENDENT_CODE OFF
+)
