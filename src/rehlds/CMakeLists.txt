@@ -11,6 +11,9 @@ if (WIN32)
 	set_target_properties(libacof32 PROPERTIES IMPORTED_IMPLIB "${BASEDIR}/lib/public/libacof32.lib")
 else()
 	set_target_properties(steam_api PROPERTIES IMPORTED_IMPLIB "${BASEDIR}/lib/public/linux32/libsteam_api.so")
+
+	add_library(aelf32 SHARED IMPORTED)
+	set_target_properties(aelf32 PROPERTIES IMPORTED_IMPLIB "${BASEDIR}/lib/public/linux32/libaelf32.lib")
 endif()
 
 add_dependencies(rehlds
