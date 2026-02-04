@@ -15,9 +15,12 @@
 # - Compile with GCC Compiler:
 #    cmake ..
 #    make
+#
+# - Windows (MSVC):
+#    cmake -A Win32 ..
 #----------------------------------------
 
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.24)
 project(engine CXX)
 
 option(DEBUG "Build with debug information." OFF)
@@ -26,70 +29,77 @@ option(USE_STATIC_LIBSTDC "Enables static linking libstdc++." OFF)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Avoid -rdynamic -fPIC options
-set(CMAKE_SHARED_LIBRARY_CXX_FLAGS "")
-set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
-
-set(COMPILE_FLAGS "-m32 -U_FORTIFY_SOURCE -DFORTIFY_SOURCE=0")
-set(LINK_FLAGS "-m32")
-
-set(COMPILE_FLAGS "${COMPILE_FLAGS} -Wall -fno-rtti -fno-exceptions -fno-strict-aliasing -fno-strict-overflow")
-
-# Remove noxref code and data
-set(COMPILE_FLAGS "${COMPILE_FLAGS} -ffunction-sections -fdata-sections")
-
-if (DEBUG)
-	set(COMPILE_FLAGS "${COMPILE_FLAGS} -g3 -O3 -ggdb")
-else()
-	set(COMPILE_FLAGS "${COMPILE_FLAGS} -g0 -O3 -fno-stack-protector")
-endif()
-
-# Check Intel C++ compiler
-if ("$ENV{CXX}" MATCHES "icpc")
-	# -fp-model=precise
-	# ICC uses -fp-model fast=1 by default for more aggressive optimizations on floating-point calculations
-	# https://software.intel.com/content/www/us/en/develop/documentation/cpp-compiler-developer-guide-and-reference/top/compiler-reference/compiler-options/compiler-option-details/floating-point-options/fp-model-fp.html#fp-model-fp_GUID-99936BBA-1508-4E9F-AC09-FA98613CE2F5
-	set(COMPILE_FLAGS "${COMPILE_FLAGS} \
-		-fp-model=precise\
-		-fasm-blocks\
-		-Qoption,cpp,--treat_func_as_string_literal_cpp")
-
-	set(LINK_FLAGS "${LINK_FLAGS} -static-intel -no-intel-extensions")
-
-	if (NOT DEBUG)
-		set(COMPILE_FLAGS "${COMPILE_FLAGS} -ipo")
-		set(LINK_FLAGS "${LINK_FLAGS} -ipo")
+if(MSVC)
+	if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+		message(FATAL_ERROR "This project requires a 32-bit build. Please run cmake with '-A Win32'.")
 	endif()
+
+	# MSVC Flags:
+	# /W3 = Warning level 3
+	# /MP = Multi-processor compilation
+	# /GR- = Disable RTTI (matches -fno-rtti)
+	# /wd4996 = Disable deprecated warnings (unsafe CRT functions)
+	set(COMPILE_FLAGS "/W3 /MP /GR- /wd4996")
+	
+	add_definitions(-D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_WARNINGS)
+
+	if(DEBUG)
+		set(COMPILE_FLAGS "${COMPILE_FLAGS} /MDd /Zi /Od")
+	else()
+		set(COMPILE_FLAGS "${COMPILE_FLAGS} /MD /O2 /Oi")
+	endif()
+
+	if(USE_STATIC_LIBSTDC)
+		string(REPLACE "/MD" "/MT" COMPILE_FLAGS ${COMPILE_FLAGS})
+	endif()
+
 else()
-	# Produce code optimized for the most common IA32/AMD64/EM64T processors.
-	# As new processors are deployed in the marketplace, the behavior of this option will change.
-	set(COMPILE_FLAGS "${COMPILE_FLAGS} \
-		-mtune=generic -msse3\
-		-fpermissive -fno-sized-deallocation\
-		-Wno-unknown-pragmas -Wno-invalid-offsetof\
-		-Wno-unused-variable -Wno-unused-result -Wno-unused-function -Wno-delete-non-virtual-dtor\
-		-Wno-write-strings -Wno-format\
-		-Wno-sign-compare -Wno-strict-aliasing -Wno-ignored-attributes")
+	set(CMAKE_SHARED_LIBRARY_CXX_FLAGS "")
+	set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
 
-	# Check if not Clang compiler
-	if (NOT "$ENV{CXX}" MATCHES "clang")
-		set(COMPILE_FLAGS "${COMPILE_FLAGS} -fno-plt -Wno-unused-but-set-variable")
+	set(COMPILE_FLAGS "-m32 -U_FORTIFY_SOURCE -DFORTIFY_SOURCE=0")
+	set(LINK_FLAGS "-m32")
 
-		# GCC >= 8.3
-		if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 8.0)
-			set(COMPILE_FLAGS "${COMPILE_FLAGS} -Wno-stringop-truncation -Wno-format-truncation -Wno-class-memaccess")
+	set(COMPILE_FLAGS "${COMPILE_FLAGS} -Wall -fno-rtti -fno-exceptions -fno-strict-aliasing -fno-strict-overflow")
+
+	set(COMPILE_FLAGS "${COMPILE_FLAGS} -ffunction-sections -fdata-sections")
+
+	if (DEBUG)
+		set(COMPILE_FLAGS "${COMPILE_FLAGS} -g3 -O3 -ggdb")
+	else()
+		set(COMPILE_FLAGS "${COMPILE_FLAGS} -g0 -O3 -fno-stack-protector")
+	endif()
+
+	# Check Intel C++ compiler
+	if ("$ENV{CXX}" MATCHES "icpc")
+		set(COMPILE_FLAGS "${COMPILE_FLAGS} -fp-model=precise -fasm-blocks -Qoption,cpp,--treat_func_as_string_literal_cpp")
+		set(LINK_FLAGS "${LINK_FLAGS} -static-intel -no-intel-extensions")
+
+		if (NOT DEBUG)
+			set(COMPILE_FLAGS "${COMPILE_FLAGS} -ipo")
+			set(LINK_FLAGS "${LINK_FLAGS} -ipo")
+		endif()
+	else()
+		set(COMPILE_FLAGS "${COMPILE_FLAGS} -mtune=generic -msse3 -fpermissive -fno-sized-deallocation -Wno-unknown-pragmas -Wno-invalid-offsetof -Wno-unused-variable -Wno-unused-result -Wno-unused-function -Wno-delete-non-virtual-dtor -Wno-write-strings -Wno-format -Wno-sign-compare -Wno-strict-aliasing -Wno-ignored-attributes")
+
+		# Check if not Clang compiler
+		if (NOT "$ENV{CXX}" MATCHES "clang")
+			set(COMPILE_FLAGS "${COMPILE_FLAGS} -fno-plt -Wno-unused-but-set-variable")
+			# GCC >= 8.3
+			if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 8.0)
+				set(COMPILE_FLAGS "${COMPILE_FLAGS} -Wno-stringop-truncation -Wno-format-truncation -Wno-class-memaccess")
+			endif()
 		endif()
 	endif()
-endif()
 
-# GCC >= 8.3
-if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 8.0)
-	set(COMPILE_FLAGS "${COMPILE_FLAGS} -fcf-protection=none")
-endif()
+	# GCC >= 8.3
+	if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 8.0)
+		set(COMPILE_FLAGS "${COMPILE_FLAGS} -fcf-protection=none")
+	endif()
 
-if (NOT DEBUG)
-	set(LINK_FLAGS "${LINK_FLAGS} \
-		-Wl,-gc-sections -Wl,--version-script=\"${PROJECT_SOURCE_DIR}/../version_script.lds\"")
+	if (NOT DEBUG)
+		set(LINK_FLAGS "${LINK_FLAGS} -Wl,-gc-sections -Wl,--version-script=\"${PROJECT_SOURCE_DIR}/../version_script.lds\"")
+	endif()
 endif()
 
 set(PROJECT_SRC_DIR
@@ -193,22 +203,28 @@ set(PUBLIC_SRCS
 	"public/utlbuffer.cpp"
 )
 
-add_library(engine SHARED ${appversion.sh} ${ENGINE_SRCS})
+add_library(engine SHARED ${ENGINE_SRCS})
 
 if (NOT TARGET bzip2)
 	add_subdirectory(../dep/bzip2 bzip2)
 endif()
 
-if (NOT TARGET appversion)
-	add_custom_target(appversion DEPENDS COMMAND "${PROJECT_SOURCE_DIR}/version/appversion.sh" "${PROJECT_SOURCE_DIR}/..")
+if (UNIX)
+	if (NOT TARGET appversion)
+		add_custom_target(appversion DEPENDS COMMAND "${PROJECT_SOURCE_DIR}/version/appversion.sh" "${PROJECT_SOURCE_DIR}/..")
+	endif()
+	add_dependencies(engine appversion)
 endif()
-
-add_dependencies(engine appversion)
 
 target_include_directories(engine PRIVATE
 	${PROJECT_SRC_DIR}
 	${PROJECT_BZIP2_DIR}
 	${PROJECT_PUBLIC_DIR}
+)
+
+target_sources(engine PRIVATE
+	${COMMON_SRCS}
+	${PUBLIC_SRCS}
 )
 
 target_compile_definitions(engine PRIVATE
@@ -222,44 +238,67 @@ target_compile_definitions(engine PRIVATE
 	REHLDS_OPT_PEDANTIC
 	HAVE_OPT_STRTOOLS
 	USE_BREAKPAD_HANDLER
-	_LINUX
-	LINUX
-	_GLIBCXX_USE_CXX11_ABI=0
-	_stricmp=strcasecmp
-	_strnicmp=strncasecmp
-	_strdup=strdup
-	_unlink=unlink
-	_vsnprintf=vsnprintf
-	_vsnwprintf=vswprintf
 )
 
-target_sources(engine PRIVATE
-	${COMMON_SRCS}
-	${PUBLIC_SRCS}
-)
+if(MSVC)
+	target_compile_definitions(engine PRIVATE
+		WIN32
+		_WINDOWS
+		_WIN32
+	)
+	
+	target_link_libraries(engine PRIVATE
+		bzip2
+		steam_api
+		ws2_32
+		winmm
+	)
 
-target_link_libraries(engine PRIVATE
-	dl
-	rt
-	m
-	aelf32
-	bzip2
-	steam_api
-)
+	set(LINK_FLAGS "${LINK_FLAGS} /LIBPATH:\"${PROJECT_SOURCE_DIR}/lib/win32\"")
 
-if (USE_STATIC_LIBSTDC)
-	target_compile_definitions(engine PRIVATE BUILD_STATIC_LIBSTDC)
-	set(LINK_FLAGS "${LINK_FLAGS} -static-libgcc -static-libstdc++")
+else()
+	target_compile_definitions(engine PRIVATE
+		_LINUX
+		LINUX
+		_GLIBCXX_USE_CXX11_ABI=0
+		_stricmp=strcasecmp
+		_strnicmp=strncasecmp
+		_strdup=strdup
+		_unlink=unlink
+		_vsnprintf=vsnprintf
+		_vsnwprintf=vswprintf
+	)
+
+	target_link_libraries(engine PRIVATE
+		dl
+		rt
+		m
+		aelf32
+		bzip2
+		steam_api
+	)
+
+	if (USE_STATIC_LIBSTDC)
+		target_compile_definitions(engine PRIVATE BUILD_STATIC_LIBSTDC)
+		set(LINK_FLAGS "${LINK_FLAGS} -static-libgcc -static-libstdc++")
+	endif()
+
+	set(LINK_FLAGS "${LINK_FLAGS} -Wl,-rpath,'$ORIGIN/.' -L${PROJECT_SOURCE_DIR}/lib/linux32")
 endif()
 
-set(LINK_FLAGS "${LINK_FLAGS} \
-	-Wl,-rpath,'$ORIGIN/.' \
-	-L${PROJECT_SOURCE_DIR}/lib/linux32")
-
-set_target_properties(engine PROPERTIES
-	OUTPUT_NAME engine_i486
-	PREFIX ""
-	COMPILE_FLAGS ${COMPILE_FLAGS}
-	LINK_FLAGS ${LINK_FLAGS}
-	POSITION_INDEPENDENT_CODE OFF
-)
+if(MSVC)
+	set_target_properties(engine PROPERTIES
+		OUTPUT_NAME swds
+		PREFIX ""
+		COMPILE_FLAGS ${COMPILE_FLAGS}
+		LINK_FLAGS ${LINK_FLAGS}
+	)
+else()
+	set_target_properties(engine PROPERTIES
+		OUTPUT_NAME engine_i486
+		PREFIX ""
+		COMPILE_FLAGS ${COMPILE_FLAGS}
+		LINK_FLAGS ${LINK_FLAGS}
+		POSITION_INDEPENDENT_CODE OFF
+	)
+endif()

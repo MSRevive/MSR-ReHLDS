@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.24)
 project(msr_rehlds CXX)
 
 add_custom_target(appversion DEPENDS
