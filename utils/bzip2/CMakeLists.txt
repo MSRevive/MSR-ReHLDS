@@ -19,11 +19,10 @@ include_directories(
 
 if(MSVC)
 	# Windows / MSVC Specific Flags
-	# /O1  = Minimize size (Matches your original -O1)
 	# /GS- = Buffer Security Check: No (Matches -fno-stack-protector)
 	# /W3  = Warning Level 3
 	# /wd4996 = Disable warnings about deprecated POSIX names (open, close, etc)
-	add_compile_options(/O1 /GS- /W3 /wd4996)
+	add_compile_options(/GS- /W3 /wd4996)
 
 	add_definitions(-D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_WARNINGS)
 

@@ -20,7 +20,7 @@ if(MSVC)
 	if(DEBUG)
 		set(COMPILE_FLAGS "${COMPILE_FLAGS} /MDd /Zi /Od")
 	else()
-		set(COMPILE_FLAGS "${COMPILE_FLAGS} /MD /O2 /Oi")
+		set(COMPILE_FLAGS "${COMPILE_FLAGS} /MD /Oi")
 	endif()
 
 else()
@@ -97,6 +97,8 @@ target_include_directories(filesystem_stdio PRIVATE
 	${PROJECT_PUBLIC_DIR}
 )
 
+target_precompile_headers(engine PRIVATE "src/precompiled.h")
+
 if(MSVC)
 	target_compile_definitions(filesystem_stdio PRIVATE
 		WIN32
@@ -121,10 +123,10 @@ else()
 endif()
 
 set_target_properties(filesystem_stdio PROPERTIES
-	OUTPUT_NAME filesystem_stdio
+	OUTPUT_NAME "filesystem_stdio"
 	PREFIX ""
-	COMPILE_FLAGS ${COMPILE_FLAGS}
-	LINK_FLAGS ${LINK_FLAGS}
+	COMPILE_FLAGS "${COMPILE_FLAGS}"
+	LINK_FLAGS "${LINK_FLAGS}"
 )
 
 if(UNIX)

@@ -29,6 +29,19 @@ option(USE_STATIC_LIBSTDC "Enables static linking libstdc++." OFF)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+add_library(steam_api SHARED IMPORTED)
+target_include_directories(steam_api INTERFACE ../lib/public/)
+
+if(WIN32)
+	add_library(libacof32 SHARED IMPORTED)
+
+	set_target_properties(steam_api PROPERTIES IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/../lib/public/steam_api.lib")
+	set_target_properties(libacof32 PROPERTIES IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/../lib/public/libacof32.lib")
+
+else()
+	set_target_properties(steam_api PROPERTIES IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/../lib/public/linux32/libsteam_api.so")
+endif()
+
 if(MSVC)
 	if(CMAKE_SIZEOF_VOID_P EQUAL 8)
 		message(FATAL_ERROR "This project requires a 32-bit build. Please run cmake with '-A Win32'.")
@@ -46,7 +59,7 @@ if(MSVC)
 	if(DEBUG)
 		set(COMPILE_FLAGS "${COMPILE_FLAGS} /MDd /Zi /Od")
 	else()
-		set(COMPILE_FLAGS "${COMPILE_FLAGS} /MD /O2 /Oi")
+		set(COMPILE_FLAGS "${COMPILE_FLAGS} /MD /Oi")
 	endif()
 
 	if(USE_STATIC_LIBSTDC)
@@ -188,6 +201,8 @@ set(ENGINE_SRCS
 	rehlds/rehlds_interfaces_impl.cpp
 	rehlds/rehlds_messagemngr_impl.cpp
 	rehlds/rehlds_security.cpp
+	rehlds/precompiled.h
+	rehlds/precompiled.cpp
 )
 
 set(COMMON_SRCS
@@ -206,14 +221,7 @@ set(PUBLIC_SRCS
 add_library(engine SHARED ${ENGINE_SRCS})
 
 if (NOT TARGET bzip2)
-	add_subdirectory(../dep/bzip2 bzip2)
-endif()
-
-if (UNIX)
-	if (NOT TARGET appversion)
-		add_custom_target(appversion DEPENDS COMMAND "${PROJECT_SOURCE_DIR}/version/appversion.sh" "${PROJECT_SOURCE_DIR}/..")
-	endif()
-	add_dependencies(engine appversion)
+	add_subdirectory(../utils/bzip2 bzip2)
 endif()
 
 target_include_directories(engine PRIVATE
@@ -238,7 +246,11 @@ target_compile_definitions(engine PRIVATE
 	REHLDS_OPT_PEDANTIC
 	HAVE_OPT_STRTOOLS
 	USE_BREAKPAD_HANDLER
+	_CRT_SECURE_NO_WARNINGS
+	DEDICATED
 )
+
+target_precompile_headers(engine PRIVATE "rehlds/precompiled.h")
 
 if(MSVC)
 	target_compile_definitions(engine PRIVATE
@@ -248,10 +260,11 @@ if(MSVC)
 	)
 	
 	target_link_libraries(engine PRIVATE
+		ws2_32
 		bzip2
 		steam_api
-		ws2_32
-		winmm
+		psapi
+		libacof32
 	)
 
 	set(LINK_FLAGS "${LINK_FLAGS} /LIBPATH:\"${PROJECT_SOURCE_DIR}/lib/win32\"")
@@ -288,17 +301,17 @@ endif()
 
 if(MSVC)
 	set_target_properties(engine PROPERTIES
-		OUTPUT_NAME swds
+		OUTPUT_NAME "swds"
 		PREFIX ""
-		COMPILE_FLAGS ${COMPILE_FLAGS}
-		LINK_FLAGS ${LINK_FLAGS}
+		COMPILE_FLAGS "${COMPILE_FLAGS}"
+		LINK_FLAGS "${LINK_FLAGS}"
 	)
 else()
 	set_target_properties(engine PROPERTIES
-		OUTPUT_NAME engine_i486
+		OUTPUT_NAME "engine_i486"
 		PREFIX ""
-		COMPILE_FLAGS ${COMPILE_FLAGS}
-		LINK_FLAGS ${LINK_FLAGS}
+		COMPILE_FLAGS "${COMPILE_FLAGS}"
+		LINK_FLAGS "${LINK_FLAGS}"
 		POSITION_INDEPENDENT_CODE OFF
 	)
 endif()

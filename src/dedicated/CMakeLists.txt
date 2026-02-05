@@ -25,6 +25,7 @@ set(DEDICATED_SRCS
 	"src/public_amalgamation.cpp"
 	"src/sys_ded.cpp"
 	"src/vgui/vguihelpers.cpp"
+	"src/precompiled.cpp"
 )
 
 set(COMMON_SRCS
@@ -41,26 +42,29 @@ if(MSVC)
 		message(WARNING "You are building for 64-bit, but HLDS is typically 32-bit. Please use a 32-bit generator (e.g., -A Win32).")
 	endif()
 
-	list(APPEND DEDICATED_SRCS "src/sys_win.cpp") 
+	list(APPEND DEDICATED_SRCS "src/conproc.cpp")
+	list(APPEND DEDICATED_SRCS "src/sys_window.cpp") 
+	list(APPEND COMMON_SRCS "../common/TextConsoleWin32.h")
 	list(APPEND COMMON_SRCS "../common/TextConsoleWin32.cpp")
 
 	# Compiler Flags
 	# /W3 = Warning level 3
 	# /MP = Multi-processor compilation
 	# /wd4996 = Disable deprecated function warnings
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3 /MP /wd4996")
+	set(COMPILE_FLAGS "${COMPILE_FLAGS} /W3 /MP /wd4996")
 
 	# Disable exceptions to match Linux build
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHs-c-") 
+	set(COMPILE_FLAGS "${COMPILE_FLAGS} /EHs-c-")
 
 	if(DEBUG)
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Od /Zi")
+		set(COMPILE_FLAGS "${COMPILE_FLAGS} /Od /Zi")
 	else()
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /O2")
+		set(COMPILE_FLAGS "${COMPILE_FLAGS} /O2")
 	endif()
 
 else()
 	list(APPEND DEDICATED_SRCS "src/sys_linux.cpp")
+	list(APPEND COMMON_SRCS "../common/TextConsoleUnix.h")
 	list(APPEND COMMON_SRCS "../common/TextConsoleUnix.cpp")
 
 	# Avoid -rdynamic -fPIC options
@@ -104,20 +108,14 @@ else()
 	endif()
 endif()
 
-if (NOT TARGET appversion AND UNIX)
-	add_custom_target(appversion DEPENDS COMMAND "${PROJECT_SOURCE_DIR}/../version/appversion.sh" "${PROJECT_SOURCE_DIR}/../..")
-endif()
-
 add_executable(hlds ${DEDICATED_SRCS} ${COMMON_SRCS})
-
-if(TARGET appversion)
-	add_dependencies(hlds appversion)
-endif()
 
 target_include_directories(hlds PRIVATE
 	${PROJECT_SRC_DIR}
 	${PROJECT_PUBLIC_DIR}
 )
+
+target_precompile_headers(engine PRIVATE "src/precompiled.h")
 
 if(MSVC)
 	target_compile_definitions(hlds PRIVATE
@@ -125,6 +123,15 @@ if(MSVC)
 		WIN32
 		_WIN32
 		_CRT_SECURE_NO_WARNINGS
+		LAUNCHER_FIXES
+		DEDICATED
+		USE_BREAKPAD_HANDLER
+		NDEBUG
+	)
+
+	target_link_libraries(hlds PRIVATE
+		ws2_32
+		winmm
 	)
 
 else()
@@ -147,18 +154,18 @@ endif()
 
 if(MSVC)
 	set_target_properties(hlds PROPERTIES
-		OUTPUT_NAME hlds
+		OUTPUT_NAME "hlds"
 		PREFIX ""
-		COMPILE_FLAGS ${COMPILE_FLAGS}
-		LINK_FLAGS ${LINK_FLAGS}
+		COMPILE_FLAGS "${COMPILE_FLAGS}"
+		LINK_FLAGS "${LINK_FLAGS}"
 	)
 	
 else()
 	set_target_properties(hlds PROPERTIES
-		OUTPUT_NAME hlds_linux
+		OUTPUT_NAME "hlds_linux"
 		PREFIX ""
-		COMPILE_FLAGS ${COMPILE_FLAGS}
-		LINK_FLAGS ${LINK_FLAGS}
+		COMPILE_FLAGS "${COMPILE_FLAGS}"
+		LINK_FLAGS "${LINK_FLAGS}"
 		POSITION_INDEPENDENT_CODE OFF
 	)
 endif()
