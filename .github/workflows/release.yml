@@ -11,7 +11,7 @@ jobs:
     runs-on: ${{matrix.os}}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-24.04, windows-latest]
 
     steps:
       - name: Checkout
@@ -28,11 +28,11 @@ jobs:
           sudo dpkg --add-architecture i386
           sudo add-apt-repository ppa:ubuntu-toolchain-r/test
           sudo apt update
-          sudo apt install -y libgcc-s1:i386 libstdc++6:i386 libgl1-mesa-dev:i386 gcc-multilib g++-multilib
+          sudo apt install -y libc6-dev libc6-dev-i386 gcc-multilib g++-multilib build-essential g++ gcc
 
       - name: Build on Linux
         if: startsWith(matrix.os, 'ubuntu')
-        run: ${{github.workspace}}/build-linux.sh -p ${{github.workspace}} -t ${{env.BUILD_TYPE}}
+        run: rm -rf  ${{github.workspace}}/build && cmake -B  ${{github.workspace}}/build && cmake --build  ${{github.workspace}}/build -j8
 
       - name: Setup MSVC CLI for Windows
         if: startsWith(matrix.os, 'windows')
@@ -43,8 +43,7 @@ jobs:
       - name: Build on Windows
         if: startsWith(matrix.os, 'windows')
         run: |
-          cmake -S . -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -A Win32
-          msbuild ${{github.workspace}}/build/msr_rehlds.sln /p:Configuration=${{env.BUILD_TYPE}} /p:Platform=win32
+          msbuild ${{github.workspace}}/ReHLDS.sln /p:Configuration=${{env.BUILD_TYPE}} /p:Platform=Win32
 
       - name: Upload Linux artifact
         if: startsWith(matrix.os, 'ubuntu')
