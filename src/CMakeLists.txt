@@ -194,7 +194,7 @@ set(PUBLIC_SRCS
 )
 
 if (NOT TARGET bzip2)
-	add_subdirectory(../dep/bzip2 bzip2)
+	add_subdirectory(../utils/bzip2 bzip2)
 endif()
 
 target_include_directories(engine PRIVATE
