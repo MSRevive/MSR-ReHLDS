@@ -193,6 +193,8 @@ set(PUBLIC_SRCS
 	"public/utlbuffer.cpp"
 )
 
+add_library(engine SHARED ${ENGINE_SRCS})
+
 if (NOT TARGET bzip2)
 	add_subdirectory(../utils/bzip2 bzip2)
 endif()

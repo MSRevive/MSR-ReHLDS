@@ -79,6 +79,8 @@ set(COMMON_SRCS
 	"../engine/mem.cpp"
 )
 
+add_library(hlds SHARED ${DEDICATED_SRCS})
+
 target_include_directories(hlds PRIVATE
 	${PROJECT_SRC_DIR}
 	${PROJECT_PUBLIC_DIR}
