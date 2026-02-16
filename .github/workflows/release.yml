@@ -51,9 +51,9 @@ jobs:
         with:
           name: linux-x86
           path: |
-            ${{github.workspace}}/build/src/rehlds/swds.so
-            ${{github.workspace}}/build/src/filesystem/filesystem_stdio.so
-            ${{github.workspace}}/build/src/dedicated/dedicated
+            ${{github.workspace}}/build/src/engine_i486.so
+            ${{github.workspace}}/build/src/filesystem/FileSystem_Stdio/filesystem_stdio.so
+            ${{github.workspace}}/build/src/dedicated/hlds_linux
 
       - name: Upload Windows artifact
         if: startsWith(matrix.os, 'windows')
@@ -62,4 +62,4 @@ jobs:
           name: win32
           path: |
             ${{github.workspace}}/bins/release/*.dll
-            ${{github.workspace}}/bins/release/dedicated.exe
+            ${{github.workspace}}/bins/release/hlds.exe
