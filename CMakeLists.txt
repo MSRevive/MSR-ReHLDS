@@ -5,6 +5,8 @@ if (WIN32)
 	message(FATAL_ERROR "CMakeLists.txt Windows platform isn't supported yet. Use ReHLDS.sln instead it!")
 endif()
 
+set(BASEDIR "${CMAKE_CURRENT_SOURCE_DIR}")
+
 add_subdirectory(src)
 add_subdirectory(src/dedicated)
 add_subdirectory(src/filesystem)

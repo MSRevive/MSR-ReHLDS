@@ -196,10 +196,10 @@ set(PUBLIC_SRCS
 add_library(engine SHARED ${ENGINE_SRCS})
 
 add_library(steam_api SHARED IMPORTED)
-set_target_properties(steam_api PROPERTIES IMPORTED_LOCATION "${PROJECT_SRC_DIR}/lib/public/linux32/libsteam_api.so")
+set_target_properties(steam_api PROPERTIES IMPORTED_LOCATION "${BASEDIR}/lib/public/linux32/libsteam_api.so")
 
-add_library(libaelf32 SHARED IMPORTED)
-set_target_properties(libaelf32 PROPERTIES IMPORTED_LOCATION "${PROJECT_SRC_DIR}/lib/public/linux32/libsteam_api.a")
+add_library(aelf32 SHARED IMPORTED)
+set_target_properties(aelf32 PROPERTIES IMPORTED_LOCATION "${BASEDIR}/lib/public/linux32/libaelf32.a")
 
 if (NOT TARGET bzip2)
 	add_subdirectory(../utils/bzip2 bzip2)
