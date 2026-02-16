@@ -89,7 +89,7 @@ bool CSys::GetExecutableName(char *out)
 
 void CSys::ErrorMessage(int level, const char *msg)
 {
-	MessageBox(nullptr, msg, "Half-Life Dedicated Server Error", MB_OK);
+	MessageBox(nullptr, msg, "MSRebirth Dedicated Server Error", MB_OK);
 	PostQuitMessage(0);
 }
 

@@ -6288,7 +6288,7 @@ int SV_SpawnServer(qboolean bIsDemo, char *server, char *startspot)
 		if (gEntityInterface.pfnGetGameDescription != NULL)
 			Cvar_Set("hostname", gEntityInterface.pfnGetGameDescription());
 		else
-			Cvar_Set("hostname", "Half-Life");
+			Cvar_Set("hostname", "MS:R Server");
 	}
 
 	scr_centertime_off = 0.0f;
@@ -8552,7 +8552,7 @@ GameToAppIDMapItem_t g_GameToAppIDMap[12] = {
 	{ 0x64, "czeror" },
 	{ 0x82, "bshift" },
 	{ 0x96, "cstrike_beta" },
-	{ 0x1DEED0, "msr" }
+	{ 0x1DEED0, "msrebirth" }
 };
 
 #define MSS_APPID 1961680

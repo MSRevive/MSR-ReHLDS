@@ -199,10 +199,9 @@ void CRegistry::WriteString(const char *key, const char *value)
 #endif
 }
 
-// FIXME:  SHould be "steam"
 static char *GetPlatformName(void)
 {
-	return "Half-Life";
+	return "steam";
 }
 
 //-----------------------------------------------------------------------------

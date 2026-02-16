@@ -60,6 +60,9 @@ const char *GetCurrentSteamAppName(void)
 	else if (!Q_stricmp(com_gamedir, "czero"))
 		return "Condition Zero";
 
+	else if (!Q_stricmp(com_gamedir, "msrebirth"))
+		return "Master Sword: Rebirth";
+
 	return "Half-Life";
 }
 
