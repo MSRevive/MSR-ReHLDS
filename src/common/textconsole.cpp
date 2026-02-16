@@ -32,6 +32,7 @@
 #include "strtools.h"
 #include "ObjectList.h"
 #include <stdio.h>
+#include <precompiled.h>
 
 bool CTextConsole::Init(IBaseSystem *system)
 {

@@ -1,19 +1,24 @@
-#ifndef __APPVERSION_H__
-#define __APPVERSION_H__
+#pragma once
 
-// 
-// This file is generated automatically.
-// Don't edit it.
-// 
+// Application version and commit information
+// This file can be auto-generated during build process
 
-// Version defines
-#define APP_VERSION "3.15.0.879-dev+m"
+#ifndef APP_VERSION
+#define APP_VERSION "1.0.0"
+#endif
 
-#define APP_COMMIT_DATE "Oct 28 2025"
-#define APP_COMMIT_TIME "12:00:36"
+#ifndef APP_COMMIT_SHA
+#define APP_COMMIT_SHA "unknown"
+#endif
 
-#define APP_COMMIT_SHA "07a432c"
-#define APP_COMMIT_URL "https://github.com/rehlds/ReHLDS/commit/"
+#ifndef APP_COMMIT_TIME
+#define APP_COMMIT_TIME __DATE__ " " __TIME__
+#endif
 
-#endif //__APPVERSION_H__
+#ifndef APP_COMMIT_DATE
+#define APP_COMMIT_DATE __DATE__
+#endif
 
+#ifndef APP_COMMIT_URL
+#define APP_COMMIT_URL "unknown"
+#endif
