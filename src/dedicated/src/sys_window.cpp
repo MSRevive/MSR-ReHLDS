@@ -243,8 +243,9 @@ void Sys_WriteProcessIdFile()
 	;
 }
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
+int main()
 {
+	auto lpCmdLine = GetCommandLineA();
 #ifdef LAUNCHER_FIXES
 	return CatchAndWriteMiniDump([=]()
 	{

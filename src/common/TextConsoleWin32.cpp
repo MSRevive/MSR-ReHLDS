@@ -84,11 +84,6 @@ CTextConsoleWin32::~CTextConsoleWin32()
 
 bool CTextConsoleWin32::Init(IBaseSystem *system)
 {
-	if (!AllocConsole())
-		m_System = system;
-
-	SetTitle(m_System ? m_System->GetName() : "Console");
-
 	hinput = GetStdHandle(STD_INPUT_HANDLE);
 	houtput = GetStdHandle(STD_OUTPUT_HANDLE);
 
@@ -97,7 +92,6 @@ bool CTextConsoleWin32::Init(IBaseSystem *system)
 	}
 
 	Attrib = FOREGROUND_GREEN | FOREGROUND_INTENSITY | BACKGROUND_INTENSITY;
-	SetWindowPos(GetConsoleHwnd(), HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOREPOSITION | SWP_SHOWWINDOW);
 
 	return CTextConsole::Init(system);
 }
@@ -257,19 +251,7 @@ void CTextConsoleWin32::SetStatusLine(const char *pszStatus)
 
 void CTextConsoleWin32::UpdateStatus()
 {
-	COORD coord;
-	DWORD dwWritten = 0;
-	WORD wAttrib[ 80 ];
-
-	for (int i = 0; i < 80; i++)
-	{
-		wAttrib[i] = Attrib; // FOREGROUND_GREEN | FOREGROUND_INTENSITY | BACKGROUND_INTENSITY;
-	}
-
-	coord.X = coord.Y = 0;
-
-	WriteConsoleOutputAttribute(houtput, wAttrib, 80, coord, &dwWritten);
-	WriteConsoleOutputCharacter(houtput, statusline, 80, coord, &dwWritten);
+	
 }
 
 void CTextConsoleWin32::SetTitle(const char *pszTitle)
