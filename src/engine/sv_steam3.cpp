@@ -27,14 +27,15 @@
 */
 
 #include "precompiled.h"
-#include "steam/isteamgameserver.h"
-#include "steam/steam_api.h"
-
-// Ensure Steam API headers are included
-#ifndef STEAM_API_H
 #include "steam/steam_api.h"
 #include "steam/steam_gameserver.h"
-#endif
+#include "steam/isteamgameserver.h"
+
+// Ensure Steam API headers are included
+//#ifndef STEAM_API_H
+//#include "steam/steam_api.h"
+//#include "steam/steam_gameserver.h"
+//#endif
 
 static CSteamAPIContext s_SteamAPIContext;
 CSteamAPIContext* steamapicontext = &s_SteamAPIContext;
