@@ -224,6 +224,7 @@ target_compile_definitions(engine PRIVATE
 	USE_BREAKPAD_HANDLER
 	_LINUX
 	LINUX
+	VERSION_SAFE_STEAM_API_INTERFACES
 	_GLIBCXX_USE_CXX11_ABI=0
 	_stricmp=strcasecmp
 	_strnicmp=strncasecmp
