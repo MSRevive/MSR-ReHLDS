@@ -28,6 +28,7 @@
 
 #include "precompiled.h"
 #include "steam/isteamgameserver.h"
+#include "steam/steam_api.h"
 
 // Ensure Steam API headers are included
 #ifndef STEAM_API_H
