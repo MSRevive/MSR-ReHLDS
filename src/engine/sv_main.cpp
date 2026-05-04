@@ -5008,7 +5008,13 @@ qboolean SV_SendClientDatagram(client_t *client)
 #ifdef REHLDS_FIXES
 	if (sv_rehlds_local_gametime.value != 0.0f)
 	{
-		MSG_WriteFloat(&msg, (float)g_GameClients[client - g_psvs.clients]->GetLocalGameTime());
+		CGameClient* gameClient = g_GameClients[client - g_psvs.clients];
+
+		double localGameTime = gameClient->GetLocalGameTime();
+		double localGameTimeBase = gameClient->GetLocalGameTimeBase();
+		DELTA_SetTimeBaseOverride(localGameTime, localGameTimeBase);
+
+		MSG_WriteFloat(&msg, (float)localGameTime);
 	}
 	else
 #endif
@@ -5044,6 +5050,10 @@ qboolean SV_SendClientDatagram(client_t *client)
 	}
 
 	Netchan_Transmit(&client->netchan, msg.cursize, buf);
+
+#ifdef REHLDS_FIXES
+	DELTA_ClearTimeBaseOverride();
+#endif
 
 	return TRUE;
 }
